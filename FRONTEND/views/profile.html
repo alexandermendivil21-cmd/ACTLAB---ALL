@@ -1,40 +1,105 @@
 <section class="profile">
   <!-- Cabecera -->
   <div class="profile-header">
-    <img src="assets2/img/avatar-sofia.jpg" alt="Foto de Sofía Pérez" class="profile-avatar">
+    <img src="assets2/img/avatar-sofia.jpg" alt="Foto de perfil" class="profile-avatar">
     <div>
-      <h2>Sofía Pérez</h2>
-      <p class="muted">Paciente registrada</p>
+      <h2 id="profile-name">Cargando...</h2>
+      <p class="muted">Paciente registrado</p>
     </div>
   </div>
 
   <!-- Contenedor de tarjetas -->
   <div class="cards-container">
-    <!-- Datos básicos -->
+    <!-- Datos básicos editables -->
     <div class="card">
-      <h3>Datos básicos</h3>
-      <div class="detail-row"><i class="fa-solid fa-user"></i><span>35 años</span></div>
-      <div class="detail-row"><i class="fa-solid fa-id-card"></i><span>DNI: 12345678</span></div>
-      <div class="detail-row"><i class="fa-solid fa-envelope"></i><span>sofia.perez@example.com</span></div>
-      <div class="detail-row"><i class="fa-solid fa-phone"></i><span>+51 912 345 678</span></div>
-    </div>
-
-    <!-- Contacto de emergencia -->
-    <div class="card">
-      <h3>Contacto de emergencia</h3>
-      <div class="detail-row"><i class="fa-solid fa-user"></i><span>María Pérez</span></div>
-      <div class="detail-row"><i class="fa-solid fa-phone"></i><span>+51 987 654 321</span></div>
-      <div class="edit-btn-container">
-        <button class="btn-primary"><i class="fa-solid fa-pen"></i> Editar</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h3>Datos básicos</h3>
+        <button id="btn-edit-profile" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+          <i class="fa-solid fa-pen"></i> Editar
+        </button>
       </div>
+      
+      <!-- Vista de solo lectura -->
+      <div id="profile-view">
+        <div class="detail-row">
+          <i class="fa-solid fa-user"></i>
+          <span id="profile-edad">-</span>
+        </div>
+        <div class="detail-row">
+          <i class="fa-solid fa-venus-mars"></i>
+          <span id="profile-genero">-</span>
+        </div>
+        <div class="detail-row">
+          <i class="fa-solid fa-id-card"></i>
+          <span id="profile-tipo-doc">-</span>
+        </div>
+        <div class="detail-row">
+          <i class="fa-solid fa-hashtag"></i>
+          <span id="profile-num-doc">-</span>
+        </div>
+        <div class="detail-row">
+          <i class="fa-solid fa-envelope"></i>
+          <span id="profile-email">-</span>
+        </div>
+        <div class="detail-row">
+          <i class="fa-solid fa-phone"></i>
+          <span id="profile-celular">-</span>
+        </div>
+        <div class="detail-row">
+          <i class="fa-solid fa-map-marker-alt"></i>
+          <span id="profile-direccion">-</span>
+        </div>
+      </div>
+
+      <!-- Vista de edición -->
+      <form id="profile-edit-form" style="display: none;">
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.25rem; font-weight: 600; font-size: 0.9rem;">Nombres</label>
+          <input type="text" id="edit-nombres" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.25rem; font-weight: 600; font-size: 0.9rem;">Apellidos</label>
+          <input type="text" id="edit-apellidos" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.25rem; font-weight: 600; font-size: 0.9rem;">Edad</label>
+          <input type="number" id="edit-edad" min="0" max="120" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.25rem; font-weight: 600; font-size: 0.9rem;">Género</label>
+          <select id="edit-genero" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+            <option value="masculino">Masculino</option>
+            <option value="femenino">Femenino</option>
+            <option value="otro">Otro</option>
+            <option value="no-especifica">Prefiero no decir</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.25rem; font-weight: 600; font-size: 0.9rem;">Dirección</label>
+          <input type="text" id="edit-direccion" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label style="display: block; margin-bottom: 0.25rem; font-weight: 600; font-size: 0.9rem;">Celular</label>
+          <input type="tel" id="edit-celular" pattern="[0-9]{9,15}" required style="width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 6px;">
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+          <button type="submit" class="btn-primary" style="flex: 1; padding: 0.6rem;">
+            <i class="fa-solid fa-check"></i> Guardar
+          </button>
+          <button type="button" id="btn-cancel-edit" class="btn-secondary" style="flex: 1; padding: 0.6rem; background: #e0e0e0; color: #333; border: none; border-radius: 6px; cursor: pointer;">
+            Cancelar
+          </button>
+        </div>
+      </form>
     </div>
 
-    <!-- Información médica -->
+    <!-- Información médica (para futura implementación) -->
     <div class="card">
       <h3>Información médica</h3>
-      <div class="detail-row"><i class="fa-solid fa-droplet"></i><span class="chip info">O+</span></div>
-      <div class="detail-row"><i class="fa-solid fa-allergies"></i><span class="chip alerta">Penicilina</span></div>
-      <div class="detail-row"><i class="fa-solid fa-heart-pulse"></i><span class="chip warning">Hipertensión</span></div>
+      <div class="detail-row">
+        <i class="fa-solid fa-info-circle"></i>
+        <span style="color: #777; font-size: 0.9rem;">Completar información médica próximamente</span>
+      </div>
     </div>
   </div>
 </section>

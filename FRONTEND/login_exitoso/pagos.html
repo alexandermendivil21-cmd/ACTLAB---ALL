@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pagos | SWALCACT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="../Assets/base.css" />
+  <link rel="stylesheet" href="../Assets/layout.css" />
+  <link rel="stylesheet" href="../Assets/components.css" />
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="../assets2/img/logo.jpg" alt="Logo SWALCACT" class="brand-logo" />
+        <span class="brand-text">SWALCACT</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="/admin" class="nav-item" data-tooltip="Inicio"><i class="fa-solid fa-house nav-icon"></i><span class="nav-text">Inicio</span></a>
+        <a href="/admin/pacientes" class="nav-item" data-tooltip="Pacientes"><i class="fa-solid fa-user-injured nav-icon"></i><span class="nav-text">Pacientes</span></a>
+        <a href="/admin/citas" class="nav-item" data-tooltip="Citas"><i class="fa-solid fa-calendar-days nav-icon"></i><span class="nav-text">Citas</span></a>
+        <a href="/admin/resultados" class="nav-item" data-tooltip="Resultados"><i class="fa-solid fa-vial nav-icon"></i><span class="nav-text">Resultados</span></a>
+        <a href="/admin/pagos" class="nav-item active" data-tooltip="Pagos"><i class="fa-solid fa-coins nav-icon"></i><span class="nav-text">Pagos</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="/login" class="nav-item" data-tooltip="Salir"><i class="fa-solid fa-right-from-bracket nav-icon"></i><span class="nav-text">Salir</span></a>
+      </div>
+    </aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="left"><button class="btn-icon" id="sidebarToggle" aria-label="Abrir menú"><i class="fa-solid fa-bars"></i></button><h1>Pagos de Pacientes</h1></div>
+      </header>
+      <section class="overview">
+        <div class="card">
+          <div class="table-wrapper">
+            <table class="user-table">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Paciente</th>
+                  <th>Monto</th>
+                  <th>Método</th>
+                  <th>Cita</th>
+                </tr>
+              </thead>
+              <tbody id="pagos-admin-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const tbody = document.getElementById('pagos-admin-tbody');
+      try {
+        const res = await fetch('/api/admin/pagos');
+        const pagos = await res.json();
+        if (!Array.isArray(pagos) || pagos.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:1rem;color:#666;">No hay pagos registrados</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = pagos.map(p => {
+          const fecha = new Date(p.createdAt).toLocaleString('es-ES');
+          return `<tr>
+            <td>${fecha}</td>
+            <td>${p.email}</td>
+            <td>S/ ${p.monto}</td>
+            <td>${p.metodo}</td>
+            <td>${p.citaId}</td>
+          </tr>`;
+        }).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:1rem;color:#c00;">Error al cargar pagos</td></tr>`;
+      }
+    });
+  </script>
+</body>
+</html>
+
+

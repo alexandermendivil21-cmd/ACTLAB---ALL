@@ -81,7 +81,7 @@
         </div>
 
         <div class="card">
-          <div class="actions-top">
+          <div class="actions-top" style="display: none;">
             <button id="btn-add" class="cta-button">
               <i class="fa-solid fa-user-plus"></i> Nuevo Paciente
             </button>
@@ -132,8 +132,10 @@
           <label>Género</label>
           <select id="gender" required>
             <option value="">Seleccione</option>
-            <option>Masculino</option>
-            <option>Femenino</option>
+            <option value="masculino">Masculino</option>
+            <option value="femenino">Femenino</option>
+            <option value="otro">Otro</option>
+            <option value="no-especifica">Prefiero no decir</option>
           </select>
         </div>
         <div class="form-group">
@@ -153,6 +155,23 @@
   </div>
 
   <!-- JS -->
+  <script src="../public/admin-layout.js" defer></script>
   <script src="../public/admin-pacientes.js" defer></script>
+
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const currentPath = window.location.pathname; // ejemplo: /admin/pacientes
+  const navLinks = document.querySelectorAll(".nav-item");
+
+  navLinks.forEach(link => {
+    if (link.getAttribute("href") === currentPath) {
+      link.classList.add("active");
+    } else {
+      link.classList.remove("active");
+    }
+  });
+});
+</script>
+
 </body>
 </html>

@@ -1,0 +1,52 @@
+<section class="pagos">
+  <div class="section-header">
+    <h1>Pagos</h1>
+    <p class="muted">Historial de pagos y operaciones recientes.</p>
+  </div>
+
+  <div class="card">
+    <h3 class="card-title">Mis pagos</h3>
+    <div class="table-wrapper">
+      <table class="tabla-pruebas" aria-label="Lista de pagos">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Monto</th>
+            <th>Método</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody id="pagos-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const email = sessionStorage.getItem('userEmail');
+      const tbody = document.getElementById('pagos-tbody');
+      if (!tbody || !email) return;
+      try {
+        const res = await fetch(`/api/pagos?email=${email}`);
+        const pagos = await res.json();
+        if (!Array.isArray(pagos) || pagos.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1rem;color:#666;">No tienes pagos registrados</td></tr>`;
+          return;
+        }
+        tbody.innerHTML = pagos.map(p => {
+          const fecha = new Date(p.createdAt).toLocaleString('es-ES');
+          return `<tr>
+            <td>${fecha}</td>
+            <td>S/ ${p.monto}</td>
+            <td>${p.metodo}</td>
+            <td>${p.estado}</td>
+          </tr>`;
+        }).join('');
+      } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1rem;color:#c00;">Error al cargar pagos</td></tr>`;
+      }
+    });
+  </script>
+</section>
+
+

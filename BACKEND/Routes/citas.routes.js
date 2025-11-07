@@ -9,10 +9,11 @@ import {
 
 const router = express.Router();
 
-router.get("/citas", getCitas);
-router.get("/citas/:id", getCitaById);
-router.post("/citas", createCita);
-router.put("/citas/:id", updateCita);
-router.delete("/citas/:id", deleteCita);
+// Rutas para gestión de citas (admin)
+router.get("/", getCitas); // Obtener todas las citas (o filtrar por email con query param)
+router.get("/:id", getCitaById); // Obtener una cita por ID
+router.post("/", createCita); // Crear una nueva cita
+router.put("/:id", updateCita); // Actualizar una cita
+router.delete("/:id", deleteCita); // Eliminar una cita
 
 export default router;

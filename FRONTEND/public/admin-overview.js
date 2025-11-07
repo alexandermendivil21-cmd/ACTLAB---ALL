@@ -1,11 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // --- Sidebar toggle ---
-  const sidebar = document.getElementById("sidebar");
-  const toggleBtn = document.getElementById("sidebarToggle");
-  toggleBtn.addEventListener("click", () => {
-    sidebar.classList.toggle("collapsed");
-    sidebar.classList.toggle("open");
-  });
+
 
   // --- Chart 1: Citas por día de la semana ---
   const ctx1 = document.getElementById("chartCitasSemana");

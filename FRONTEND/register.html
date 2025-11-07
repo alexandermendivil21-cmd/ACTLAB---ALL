@@ -39,6 +39,7 @@
       </div>
 
       <form id="register_form" class="login-form" action="#" method="post">
+        <div class="form-grid">
         <div id="tipo_documento" class="form-group">
           <label for="tipo-documento">Tipo de documento *</label>
           <select id="tipo-documento" name="tipo_documento" required>
@@ -51,7 +52,7 @@
 
         <div id="num_documento_group" class="form-group">
           <label for="num-documento">Número de documento *</label>
-          <input type="text" id="num-documento" name="num_documento" placeholder="00000000" required />
+          <input type="text" id="num-documento" name="num_documento" required />
         </div>
 
         <div id="fecha_emision_group" class="form-group">
@@ -59,25 +60,52 @@
           <input type="date" id="fecha-emision" name="fecha_emision" required />
         </div>
 
-        <div id="email_group" class="form-group">
-          <label for="email">Correo electrónico *</label>
-          <input type="email" id="email" name="email" placeholder="ejemplo@correo.com" required />
+        <div id="nombres_group" class="form-group">
+          <label for="nombres">Nombres *</label>
+          <input type="text" id="nombres" name="nombres" required />
         </div>
 
-        <div id="password" class="form-group">
+        <div id="apellidos_group" class="form-group">
+          <label for="apellidos">Apellidos *</label>
+          <input type="text" id="apellidos" name="apellidos" required />
+        </div>
+
+        <div id="edad_group" class="form-group">
+          <label for="edad">Edad *</label>
+          <input type="number" id="edad" name="edad" min="0" max="120" required />
+        </div>
+
+        <div id="genero_group" class="form-group">
+          <label for="genero">Género *</label>
+          <select id="genero" name="genero" required>
+            <option value="" disabled selected>Selecciona</option>
+            <option value="masculino">Masculino</option>
+            <option value="femenino">Femenino</option>
+            <option value="otro">Otro</option>
+            <option value="no-especifica">Prefiero no decir</option>
+          </select>
+        </div>
+
+        <div id="direccion_group" class="form-group col-span-2">
+          <label for="direccion">Dirección *</label>
+          <input type="text" id="direccion" name="direccion" required />
+        </div>
+
+        <div id="celular_group" class="form-group">
+          <label for="celular">Celular *</label>
+          <input type="tel" id="celular" name="celular" pattern="[0-9]{9,15}" required />
+        </div>
+
+        <div id="email_group" class="form-group">
+          <label for="email">Correo electrónico *</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+
+        <div id="password" class="form-group col-span-2">
           <label for="current-password">Contraseña *</label>
           <input type="password" id="password" name="password" required />
         </div>
 
-        <div id="edad_checkbox_group" class="form-group checkbox-group">
-          <label class="checkbox">
-            <input type="checkbox" id="mayor" name="mayor" />
-            Soy mayor de edad
-          </label>
-          <label class="checkbox">
-            <input type="checkbox" id="menor" name="menor" />
-            Soy menor de edad
-          </label>
         </div>
 
         <button type="submit" class="btn-primary">Crear Cuenta</button>

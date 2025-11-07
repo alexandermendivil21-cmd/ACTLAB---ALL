@@ -60,6 +60,8 @@ form.addEventListener("submit", async (e) => {
 
     // Guardar token para llamadas autenticadas posteriores
     localStorage.setItem("token", data.token);
+    sessionStorage.setItem("userEmail", data.email); 
+
 
     // Redirigir al área admin
     window.location.href = data.redirect || "/admin";

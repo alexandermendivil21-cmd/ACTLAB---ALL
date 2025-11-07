@@ -13,16 +13,19 @@ export async function register(req, res) {
       tipo_documento: rawTipo,
       num_documento,
       fecha_emision,
+      nombres,
+      apellidos,
+      edad,
+      genero,
+      direccion,
+      celular,
       email,
       password,
-      password_create,
-      mayor,
-      menor,
     } = req.body;
     console.log(" Datos recibidos en req.body:", req.body);
 
 
-    if (!rawTipo || !num_documento || !fecha_emision || !email || !password) {
+    if (!rawTipo || !num_documento || !fecha_emision || !nombres || !apellidos || !edad || !genero || !direccion || !celular || !email || !password) {
       return res.status(400).json({ ok: false, message: "Faltan campos obligatorios." });
     }
 
@@ -47,8 +50,10 @@ export async function register(req, res) {
       return res.status(400).json({ ok: false, message: "Fecha de emisión inválida." });
     }
 
-    if ((mayor && menor) || (!mayor && !menor)) {
-      return res.status(400).json({ ok: false, message: "Marca mayor o menor (solo una)." });
+    // Edad
+    const edadNum = Number(edad);
+    if (Number.isNaN(edadNum) || edadNum < 0 || edadNum > 120) {
+      return res.status(400).json({ ok: false, message: "Edad inválida." });
     }
 
     // 🔍 Verificar si ya existe en BD
@@ -65,10 +70,14 @@ export async function register(req, res) {
       tipo_documento: tipo,
       num_documento,
       fecha_emision: fecha,
-      email, // ✅ lo agregamos aquí
+      nombres,
+      apellidos,
+      edad: edadNum,
+      genero,
+      direccion,
+      celular,
+      email,
       password: hash,
-      mayor,
-      menor,
     });
 
 
@@ -133,6 +142,7 @@ export async function login(req, res) {
       token,
       role: "user",
       redirect: "/user",
+      email: user.email,
     });
   } catch (err) {
     console.error("Error en login:", err);

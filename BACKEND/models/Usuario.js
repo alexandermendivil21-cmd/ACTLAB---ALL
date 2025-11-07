@@ -17,6 +17,37 @@ const usuarioSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    nombres: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    apellidos: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    edad: {
+      type: Number,
+      required: true,
+      min: 0,
+      max: 120,
+    },
+    genero: {
+      type: String,
+      enum: ["masculino", "femenino", "otro", "no-especifica"],
+      required: true,
+    },
+    direccion: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    celular: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     email: {
       type: String,
       required: true,
@@ -29,18 +60,10 @@ const usuarioSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    password_create: {
+    /*password_create: {
       type: String,
       required: true,
-    },
-    mayor: {
-      type: Boolean,
-      default: false,
-    },
-    menor: {
-      type: Boolean,
-      default: false,
-    },
+    }, */ 
   },
   { timestamps: true }
 );

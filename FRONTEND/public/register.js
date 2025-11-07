@@ -10,10 +10,14 @@ const payload = {
   tipo_documento: elems['tipo_documento'].value,
   num_documento: elems['num_documento'].value,
   fecha_emision: elems['fecha_emision'].value,
+  nombres: elems['nombres'].value,
+  apellidos: elems['apellidos'].value,
+  edad: Number(elems['edad'].value),
+  genero: elems['genero'].value,
+  direccion: elems['direccion'].value,
+  celular: elems['celular'].value,
   email: elems['email'].value,
-  password: elems['password'].value,
-  mayor: elems['mayor'].checked,
-  menor: elems['menor'].checked
+  password: elems['password'].value
 };
 
 
