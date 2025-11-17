@@ -58,10 +58,35 @@ form.addEventListener("submit", async (e) => {
       return;
     }
 
+    // Limpiar datos de sesión del usuario anterior para evitar conflictos
+    sessionStorage.removeItem("userRole");
+    sessionStorage.removeItem("userCargo");
+    sessionStorage.removeItem("userEmail");
+    sessionStorage.removeItem("userNombres");
+    sessionStorage.removeItem("userApellidos");
+    
     // Guardar token para llamadas autenticadas posteriores
     localStorage.setItem("token", data.token);
-    sessionStorage.setItem("userEmail", data.email); 
-
+    
+    // Guardar información del usuario actual
+    if (data.email) {
+      sessionStorage.setItem("userEmail", data.email);
+    }
+    if (data.role) {
+      sessionStorage.setItem("userRole", data.role);
+    }
+    if (data.cargo) {
+      sessionStorage.setItem("userCargo", data.cargo);
+    } else {
+      // Si no hay cargo (como en el caso del admin), asegurarse de que no quede uno anterior
+      sessionStorage.removeItem("userCargo");
+    }
+    if (data.nombres) {
+      sessionStorage.setItem("userNombres", data.nombres);
+    }
+    if (data.apellidos) {
+      sessionStorage.setItem("userApellidos", data.apellidos);
+    }
 
     // Redirigir al área admin
     window.location.href = data.redirect || "/admin";

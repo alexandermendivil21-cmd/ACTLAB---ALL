@@ -6,6 +6,24 @@ document.addEventListener("DOMContentLoaded", () => {
   const modalIcon = document.getElementById("modalIcon");
   const btnModalSiguiente = document.getElementById("btnModalSiguiente");
   const btnVolverCitas = document.getElementById("btnVolverCitas");
+  const especialidadSelect = document.getElementById("especialidad");
+  const precioEspecialidadDiv = document.getElementById("precioEspecialidad");
+  const montoEspecialidadSpan = document.getElementById("montoEspecialidad");
+
+  // Función para obtener precio por especialidad
+  const getPrecioEspecialidad = (especialidad) => {
+    const precios = {
+      "Cardiología": 80.00,
+      "Dermatología": 60.00,
+      "Pediatría": 50.00,
+      "Traumatología": 70.00,
+      "Neurología": 90.00,
+      "Hematología": 65.00,
+      "Inmunología": 75.00,
+      "Bioquímica": 55.00,
+    };
+    return precios[especialidad] || 50.00;
+  };
 
   // ✅ función para mostrar el modal (éxito o error)
   const showModal = (isSuccess, title, message) => {
@@ -50,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     try {
       // enviar la solicitud al backend
-      const res = await fetch("http://localhost:3000/api/citas", {
+      const res = await fetch("http://localhost:5000/api/citas", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -66,8 +84,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
       if (!res.ok) throw new Error(data.error || "Error al registrar la cita");
 
-      showModal(true, "Solicitud Enviada", "Su cita ha sido registrada exitosamente.");
-      formSolicitarCita.reset();
+      // Guardar el ID de la cita en sessionStorage
+      if (data.cita && data.cita._id) {
+        sessionStorage.setItem('ultimaCitaId', data.cita._id);
+        // Redirigir a la página de pago usando window.location si estamos en una página HTML completa
+        // o cargar la vista si estamos en el dashboard
+        if (window.location.pathname.includes('/user/citas') || window.location.pathname.includes('/user/pagar-cita')) {
+          window.location.href = '/user/pagar-cita?citaId=' + data.cita._id;
+        } else {
+          // Si estamos en el dashboard, cargar la vista de pago
+          if (typeof loadSection === 'function') {
+            loadSection('pagar-cita');
+          } else {
+            window.location.href = '/user/pagar-cita?citaId=' + data.cita._id;
+          }
+        }
+      } else {
+        showModal(true, "Solicitud Enviada", "Su cita ha sido registrada exitosamente.");
+        formSolicitarCita.reset();
+      }
 
     } catch (error) {
       console.error("Error al solicitar cita:", error);
@@ -84,6 +119,20 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnVolverCitas) {
     btnVolverCitas.addEventListener("click", () => {
       window.location.href = "./dashboardPaciente.html";
+    });
+  }
+
+  // ✅ Mostrar precio cuando se selecciona una especialidad
+  if (especialidadSelect && precioEspecialidadDiv && montoEspecialidadSpan) {
+    especialidadSelect.addEventListener("change", (e) => {
+      const especialidad = e.target.value;
+      if (especialidad) {
+        const precio = getPrecioEspecialidad(especialidad);
+        montoEspecialidadSpan.textContent = `S/ ${precio.toFixed(2)}`;
+        precioEspecialidadDiv.style.display = "block";
+      } else {
+        precioEspecialidadDiv.style.display = "none";
+      }
     });
   }
 });

@@ -1,5 +1,11 @@
 // BACKEND/controllers/perfil.controller.js
 import Usuario from "../models/Usuario.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Obtener perfil por email
 export const getPerfil = async (req, res) => {
@@ -22,7 +28,8 @@ export const getPerfil = async (req, res) => {
       email: 1,
       tipo_documento: 1,
       num_documento: 1,
-      fecha_emision: 1
+      fecha_emision: 1,
+      imagen: 1
     });
 
     if (!usuario) {
@@ -53,7 +60,7 @@ export const updatePerfil = async (req, res) => {
       });
     }
 
-    // Validar campos requeridos
+    // Validar campos requeridos (imagen es opcional)
     if (!nombres || !apellidos || edad === undefined || !genero || !direccion || !celular) {
       return res.status(400).json({ 
         message: "Todos los campos son obligatorios" 
@@ -76,7 +83,15 @@ export const updatePerfil = async (req, res) => {
       });
     }
 
-    // Actualizar solo los campos permitidos
+    // Buscar el usuario actual para obtener la imagen anterior
+    const usuarioActual = await Usuario.findOne({ email: email.toLowerCase() });
+    if (!usuarioActual) {
+      return res.status(404).json({ 
+        message: "Usuario no encontrado" 
+      });
+    }
+
+    // Preparar datos de actualización
     const updateData = {
       nombres: nombres.trim(),
       apellidos: apellidos.trim(),
@@ -86,13 +101,40 @@ export const updatePerfil = async (req, res) => {
       celular: celular.trim()
     };
 
+    // Si hay una nueva imagen, procesarla
+    if (req.file) {
+      // Eliminar la imagen anterior si existe
+      if (usuarioActual.imagen) {
+        const imagenAnteriorPath = path.join(__dirname, "..", usuarioActual.imagen);
+        try {
+          if (fs.existsSync(imagenAnteriorPath)) {
+            fs.unlinkSync(imagenAnteriorPath);
+          }
+        } catch (err) {
+          console.error("Error al eliminar imagen anterior:", err);
+          // No fallar si no se puede eliminar la imagen anterior
+        }
+      }
+      
+      // Guardar la ruta de la nueva imagen
+      updateData.imagen = `/uploads/profiles/${req.file.filename}`;
+    }
+
     const usuario = await Usuario.findOneAndUpdate(
       { email: email.toLowerCase() },
       updateData,
-      { new: true, select: 'nombres apellidos edad genero direccion celular email tipo_documento num_documento' }
+      { new: true, select: 'nombres apellidos edad genero direccion celular email tipo_documento num_documento imagen' }
     );
 
     if (!usuario) {
+      // Si falla la actualización y se subió un archivo, eliminarlo
+      if (req.file) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (err) {
+          console.error("Error al eliminar archivo subido:", err);
+        }
+      }
       return res.status(404).json({ 
         message: "Usuario no encontrado" 
       });
@@ -103,6 +145,14 @@ export const updatePerfil = async (req, res) => {
       usuario: usuario
     });
   } catch (error) {
+    // Si hay error y se subió un archivo, eliminarlo
+    if (req.file) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (err) {
+        console.error("Error al eliminar archivo subido:", err);
+      }
+    }
     console.error("Error al actualizar perfil:", error);
     res.status(500).json({ 
       message: "Error al actualizar el perfil", 

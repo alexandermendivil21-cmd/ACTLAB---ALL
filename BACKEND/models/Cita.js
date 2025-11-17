@@ -40,6 +40,7 @@ const citaSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+      enum: ["Análisis", "Consulta Médica", "Para sacar análisis", "Para consulta médica"], // Mantiene compatibilidad con datos antiguos
     },
 
     estado: {
@@ -51,6 +52,19 @@ const citaSchema = new mongoose.Schema(
     fechaRegistro: {
       type: Date,
       default: Date.now,
+    },
+
+    // Campos para rastrear quién realizó la acción
+    canceladaPor: {
+      type: String,
+      enum: ["paciente", "admin", null],
+      default: null,
+    },
+
+    modificadaPor: {
+      type: String,
+      enum: ["paciente", "admin", null],
+      default: null,
     },
   },
   { timestamps: true }

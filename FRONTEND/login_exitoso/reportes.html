@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="../Assets/base.css">
   <link rel="stylesheet" href="../Assets/layout.css">
   <link rel="stylesheet" href="../Assets/components.css">
+  <link rel="stylesheet" href="../Assets/admin-overview.css">
 </head>
 
 <body>
@@ -30,6 +31,10 @@
           <i class="fa-solid fa-user-injured nav-icon"></i>
           <span class="nav-text">Pacientes</span>
         </a>
+        <a href="/admin/personal" class="nav-item" data-tooltip="Personal">
+          <i class="fa-solid fa-user-tie nav-icon"></i>
+          <span class="nav-text">Personal</span>
+        </a>
         <a href="/admin/citas" class="nav-item" data-tooltip="Citas">
           <i class="fa-solid fa-calendar-days nav-icon"></i>
           <span class="nav-text">Citas</span>
@@ -38,9 +43,18 @@
           <i class="fa-solid fa-vial nav-icon"></i>
           <span class="nav-text">Resultados</span>
         </a>
+        <a href="/admin/diagnosticos" class="nav-item" data-tooltip="Diagnósticos">
+          <i class="fa-solid fa-file-medical nav-icon"></i>
+          <span class="nav-text">Diagnósticos</span>
+        </a>
         <a href="/admin/reportes" class="nav-item active" data-tooltip="Reportes">
           <i class="fa-solid fa-chart-line nav-icon"></i>
           <span class="nav-text">Reportes</span>
+        </a>
+
+        <a href="/admin/perfil" class="nav-item" data-tooltip="Mi Perfil">
+          <i class="fa-solid fa-user nav-icon"></i>
+          <span class="nav-text">Mi Perfil</span>
         </a>
       </nav>
 
@@ -58,21 +72,38 @@
           <button class="btn-icon" id="sidebarToggle" aria-label="Abrir menú">
             <i class="fa-solid fa-bars"></i>
           </button>
-          <h1>Reportes</h1>
         </div>
         <div class="right">
           <img src="../assets2/img/avatar-admin.jpg" alt="Admin" class="avatar small-avatar">
         </div>
       </header>
 
-      <section class="empty-section">
-        <i class="fa-solid fa-chart-line"></i>
-        <h2>Sección en construcción</h2>
-        <p>El módulo de reportes estará disponible próximamente.</p>
+      <section class="overview">
+        <h2>Visualización General</h2>
+        <p class="muted" style="margin-bottom: 2rem;">Reportes y estadísticas del sistema</p>
+
+        <!-- 🔹 SECCIÓN DE GRÁFICOS -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h4><i class="fa-solid fa-calendar-day"></i> Citas de la Semana</h4>
+            <canvas id="chartCitasSemana"></canvas>
+          </div>
+          <div class="chart-card">
+            <h4><i class="fa-solid fa-vial"></i> Exámenes más Solicitados</h4>
+            <canvas id="chartExamenes"></canvas>
+          </div>
+          <div class="chart-card">
+            <h4><i class="fa-solid fa-user-plus"></i> Pacientes Nuevos por Mes</h4>
+            <canvas id="chartPacientesMes"></canvas>
+          </div>
+        </div>
       </section>
     </main>
   </div>
 
+  <!-- JS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="../public/admin-reportes.js" defer></script>
   <script src="../public/admin-layout.js" defer></script>
 </body>
 </html>

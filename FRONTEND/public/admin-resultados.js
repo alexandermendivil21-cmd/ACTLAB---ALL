@@ -4,6 +4,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let todosLosResultados = [];
   let resultadosFiltrados = [];
   let resultadoEditando = null;
+  let todasLasMuestras = [];
+  let userCargo = sessionStorage.getItem('userCargo') || '';
 
   // Referencias DOM
   const filtroPaciente = document.getElementById('filtroPaciente');
@@ -20,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const formResultado = document.getElementById('formResultado');
   const inputPDF = document.getElementById('inputPDF');
   const fileName = document.getElementById('fileName');
+  const muestrasBody = document.getElementById('muestrasBody');
+  const tablaMuestras = document.getElementById('tablaMuestras');
+  const emptyStateMuestras = document.getElementById('emptyStateMuestras');
 
   // Inicialización
   init();
@@ -29,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================
   function init() {
     cargarResultados();
+    cargarMuestras();
     setupEventListeners();
   }
 
@@ -59,6 +65,159 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target === modalResultado) cerrarModal();
     });
   }
+
+  // ============================================
+  // FUNCIONES DE API - MUESTRAS
+  // ============================================
+  async function cargarMuestras() {
+    try {
+      const response = await fetch('/api/muestras');
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar las muestras');
+      }
+
+      const data = await response.json();
+      todasLasMuestras = Array.isArray(data) ? data : [];
+      renderizarMuestras();
+    } catch (error) {
+      console.error('Error al cargar muestras:', error);
+      todasLasMuestras = [];
+      renderizarMuestras();
+    }
+  }
+
+  async function actualizarEstadoMuestra(id, estadoMuestra) {
+    try {
+      const response = await fetch(`/api/muestras/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          estadoMuestra: estadoMuestra,
+          userCargo: userCargo,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al actualizar el estado de la muestra');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error al actualizar estado de muestra:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
+  // FUNCIONES DE RENDERIZADO - MUESTRAS
+  // ============================================
+  function renderizarMuestras() {
+    if (todasLasMuestras.length === 0) {
+      if (tablaMuestras) tablaMuestras.style.display = 'none';
+      if (emptyStateMuestras) {
+        emptyStateMuestras.classList.remove('hidden');
+        emptyStateMuestras.style.display = 'flex';
+      }
+      if (muestrasBody) {
+        muestrasBody.innerHTML = `
+          <tr>
+            <td colspan="4" style="text-align: center; padding: 2rem; color: #666;">
+              No hay muestras registradas
+            </td>
+          </tr>
+        `;
+      }
+      return;
+    }
+
+    if (tablaMuestras) tablaMuestras.style.display = 'table';
+    if (emptyStateMuestras) {
+      emptyStateMuestras.classList.add('hidden');
+      emptyStateMuestras.style.display = 'none';
+    }
+
+    if (!muestrasBody) return;
+
+    muestrasBody.innerHTML = todasLasMuestras
+      .sort((a, b) => {
+        const fechaA = new Date(a.fechaRecoleccion || a.createdAt);
+        const fechaB = new Date(b.fechaRecoleccion || b.createdAt);
+        return fechaB - fechaA;
+      })
+      .map(muestra => {
+        const fechaRecoleccion = muestra.fechaRecoleccion 
+          ? new Date(muestra.fechaRecoleccion)
+          : muestra.createdAt 
+          ? new Date(muestra.createdAt)
+          : new Date();
+        
+        const fechaFormateada = fechaRecoleccion.toLocaleDateString('es-ES', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric'
+        });
+
+        const estadoMuestraTexto = muestra.estadoMuestra === 'recolectada' 
+          ? 'Recolectada' 
+          : muestra.estadoMuestra === 'en-proceso' 
+          ? 'En Proceso' 
+          : muestra.estadoMuestra || 'Recolectada';
+
+        const estadoMuestraClase = muestra.estadoMuestra === 'recolectada' 
+          ? 'recolectada' 
+          : muestra.estadoMuestra === 'en-proceso' 
+          ? 'en-proceso' 
+          : 'recolectada';
+
+        // Solo técnicos pueden cambiar el estado
+        const puedeEditar = userCargo === 'tecnico';
+        const selectEstado = puedeEditar
+          ? `
+            <select 
+              class="status-select ${estadoMuestraClase}" 
+              onchange="cambiarEstadoMuestra('${muestra._id}', this.value)"
+              style="padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 0.9rem; font-weight: 500;">
+              <option value="recolectada" ${muestra.estadoMuestra === 'recolectada' ? 'selected' : ''}>Recolectada</option>
+              <option value="en-proceso" ${muestra.estadoMuestra === 'en-proceso' ? 'selected' : ''}>En Proceso</option>
+            </select>
+          `
+          : `
+            <span class="status-badge ${estadoMuestraClase}" style="padding: 0.35rem 0.75rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600;">
+              ${estadoMuestraTexto}
+            </span>
+          `;
+
+        return `
+          <tr>
+            <td style="font-weight: 500;">${muestra.nombrePaciente || 'Paciente no encontrado'}</td>
+            <td>${fechaFormateada}</td>
+            <td>${selectEstado}</td>
+            <td>
+              ${puedeEditar ? '<span style="font-size: 0.85rem; color: #0284c7;"><i class="fa-solid fa-user-cog"></i> Puedes editar</span>' : '<span style="font-size: 0.85rem; color: #666;"><i class="fa-solid fa-lock"></i> Solo lectura</span>'}
+            </td>
+          </tr>
+        `;
+      })
+      .join('');
+  }
+
+  // Función global para cambiar el estado de la muestra
+  window.cambiarEstadoMuestra = async function(id, nuevoEstado) {
+    try {
+      await actualizarEstadoMuestra(id, nuevoEstado);
+      // Recargar muestras después de actualizar
+      await cargarMuestras();
+    } catch (error) {
+      alert('Error al actualizar el estado: ' + error.message);
+      // Recargar muestras para restaurar el estado anterior
+      await cargarMuestras();
+    }
+  };
 
   // ============================================
   // FUNCIONES DE API

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Personal | SWALCACT</title>
+
+  <!-- Fuentes & Estilos -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+  <link rel="stylesheet" href="../Assets/base.css" />
+  <link rel="stylesheet" href="../Assets/layout.css" />
+  <link rel="stylesheet" href="../Assets/components.css" />
+  <link rel="stylesheet" href="../Assets/overview.css" />
+  <link rel="stylesheet" href="../Assets/admin-personal.css" />
+</head>
+
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="../assets2/img/logo.jpg" alt="Logo ACT" class="brand-logo" />
+        <span class="brand-text">SWALCACT</span>
+      </div>
+
+<nav class="sidebar-nav">
+  <a href="/admin" class="nav-item" data-tooltip="Inicio">
+    <i class="fa-solid fa-house nav-icon"></i>
+    <span class="nav-text">Inicio</span>
+  </a>
+
+  <a href="/admin/pacientes" class="nav-item" data-tooltip="Pacientes">
+    <i class="fa-solid fa-user-injured nav-icon"></i>
+    <span class="nav-text">Pacientes</span>
+  </a>
+
+  <a href="/admin/personal" class="nav-item" data-tooltip="Personal">
+    <i class="fa-solid fa-user-tie nav-icon"></i>
+    <span class="nav-text">Personal</span>
+  </a>
+
+  <a href="/admin/citas" class="nav-item" data-tooltip="Citas">
+    <i class="fa-solid fa-calendar-days nav-icon"></i>
+    <span class="nav-text">Citas</span>
+  </a>
+
+        <a href="/admin/resultados" class="nav-item" data-tooltip="Resultados">
+          <i class="fa-solid fa-vial nav-icon"></i>
+          <span class="nav-text">Resultados</span>
+        </a>
+
+        <a href="/admin/diagnosticos" class="nav-item" data-tooltip="Diagnósticos">
+          <i class="fa-solid fa-file-medical nav-icon"></i>
+          <span class="nav-text">Diagnósticos</span>
+        </a>
+
+        <a href="/admin/reportes" class="nav-item" data-tooltip="Reportes">
+          <i class="fa-solid fa-chart-line nav-icon"></i>
+          <span class="nav-text">Reportes</span>
+        </a>
+
+        <a href="/admin/perfil" class="nav-item" data-tooltip="Mi Perfil">
+          <i class="fa-solid fa-user nav-icon"></i>
+          <span class="nav-text">Mi Perfil</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="/" class="nav-item" data-tooltip="Salir">
+          <i class="fa-solid fa-right-from-bracket nav-icon"></i>
+          <span class="nav-text">Salir</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <div class="left">
+          <button class="btn-icon" id="sidebarToggle" aria-label="Abrir menú">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+        </div>
+        <div class="right">
+          <img src="../assets2/img/avatar-admin.jpg" alt="Admin" class="avatar small-avatar" />
+        </div>
+      </header>
+
+      <!-- CONTENIDO PRINCIPAL -->
+      <section class="overview">
+        <!-- HEADER -->
+        <div class="personal-header">
+          <div class="header-content">
+            <h2 class="section-title">Gestión de Personal</h2>
+            <p class="section-subtitle">Administra la información de todo el personal del sistema</p>
+          </div>
+          <button id="btn-add" class="cta-button">
+            <i class="fa-solid fa-user-plus"></i> Nuevo Miembro
+          </button>
+        </div>
+
+        <!-- FILTROS Y BÚSQUEDA -->
+        <div class="filters-container">
+          <div class="search-group">
+            <i class="fa-solid fa-search search-icon"></i>
+            <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nombre, apellido, email, cargo o especialidad...">
+          </div>
+        </div>
+
+        <!-- TABLA DE PERSONAL -->
+        <div class="card">
+          <div class="table-wrapper">
+            <!-- Indicador de carga -->
+            <div class="loading-state hidden" id="loadingState">
+              <div class="spinner"></div>
+              <p>Cargando personal...</p>
+            </div>
+
+            <!-- Estado vacío -->
+            <div class="empty-state hidden" id="emptyState">
+              <div class="empty-icon">
+                <i class="fa-solid fa-users-slash"></i>
+              </div>
+              <h3>No hay personal</h3>
+              <p>No se encontró personal registrado. ¡Comienza agregando un nuevo miembro!</p>
+            </div>
+
+            <table class="user-table" id="personalTable">
+              <thead>
+                <tr>
+                  <th>Nombres</th>
+                  <th>Apellidos</th>
+                  <th>Cargo</th>
+                  <th>Especialidad</th>
+                  <th>Email</th>
+                  <th>Celular</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="personal-tbody">
+                <!-- Filas generadas por JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal -->
+  <div id="modal-form" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modal-title">Nuevo Miembro del Personal</h3>
+        <button type="button" class="modal-close" id="btn-close-modal" aria-label="Cerrar modal">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <form id="form-personal">
+        <input type="hidden" id="personal-id">
+        
+        <!-- Sección: Documento -->
+        <div class="form-section">
+          <h4 class="form-section-title">Información de Documento</h4>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Tipo de documento *</label>
+              <select id="tipo-documento" required>
+                <option value="">Seleccione</option>
+                <option value="dni">DNI</option>
+                <option value="pasaporte">Pasaporte</option>
+                <option value="carnet-ext">Carné de extranjería</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Número de documento *</label>
+              <input id="num-documento" type="text" required placeholder="Solo números" maxlength="9">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Fecha de emisión *</label>
+            <input id="fecha-emision" type="date" required>
+            <small class="form-hint">Debe ser anterior a hoy</small>
+          </div>
+        </div>
+
+        <!-- Sección: Datos Personales -->
+        <div class="form-section">
+          <h4 class="form-section-title">Datos Personales</h4>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Nombres *</label>
+              <input id="first-name" required>
+            </div>
+            <div class="form-group">
+              <label>Apellidos *</label>
+              <input id="last-name" required>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Edad *</label>
+              <input id="age" type="number" min="0" max="120" required>
+            </div>
+            <div class="form-group">
+              <label>Género *</label>
+              <select id="gender" required>
+                <option value="">Seleccione</option>
+                <option value="masculino">Masculino</option>
+                <option value="femenino">Femenino</option>
+                <option value="otro">Otro</option>
+                <option value="no-especifica">Prefiero no decir</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección: Contacto -->
+        <div class="form-section">
+          <h4 class="form-section-title">Información de Contacto</h4>
+          <div class="form-group">
+            <label>Dirección *</label>
+            <input id="address" required>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Celular *</label>
+              <input id="phone" type="text" required placeholder="9 dígitos" maxlength="9">
+              <small class="form-hint">9 dígitos</small>
+            </div>
+            <div class="form-group">
+              <label>Email *</label>
+              <input id="email" type="email" required placeholder="ejemplo@correo.com">
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección: Información Laboral -->
+        <div class="form-section">
+          <h4 class="form-section-title">Información Laboral</h4>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Cargo *</label>
+              <select id="cargo" required>
+                <option value="">Seleccione</option>
+                <option value="medico">Médico</option>
+                <option value="tecnico">Técnico</option>
+                <option value="recepcionista">Recepcionista</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Especialidad</label>
+              <select id="especialidad">
+                <option value="N/A">N/A</option>
+                <option value="Cardiología">Cardiología</option>
+                <option value="Dermatología">Dermatología</option>
+                <option value="Pediatría">Pediatría</option>
+                <option value="Traumatología">Traumatología</option>
+                <option value="Neurología">Neurología</option>
+                <option value="Hematología">Hematología</option>
+                <option value="Inmunología">Inmunología</option>
+                <option value="Bioquímica">Bioquímica</option>
+                <option value="Medicina General">Medicina General</option>
+              </select>
+              <small class="form-hint">Solo para personal médico</small>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Estado *</label>
+            <select id="estado" required>
+              <option value="activo">Activo</option>
+              <option value="inactivo">Inactivo</option>
+              <option value="vacaciones">Vacaciones</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Sección: Credenciales -->
+        <div class="form-section" id="password-group">
+          <h4 class="form-section-title">Credenciales de Acceso</h4>
+          <div class="form-group">
+            <label>Contraseña *</label>
+            <input id="password" type="password" required placeholder="Mínimo 6 caracteres" minlength="6">
+            <small class="form-hint">Mínimo 6 caracteres</small>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" id="btn-cancel" class="btn-secondary">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- JS -->
+  <script src="../public/admin-layout.js" defer></script>
+  <script src="../public/admin-personal.js" defer></script>
+
+  <script>
+document.addEventListener("DOMContentLoaded", () => {
+  const currentPath = window.location.pathname;
+  const navLinks = document.querySelectorAll(".nav-item");
+
+  navLinks.forEach(link => {
+    const href = link.getAttribute("href");
+    // Comparar rutas de manera más flexible
+    if (href === currentPath || (currentPath.startsWith(href) && href !== "/admin")) {
+      link.classList.add("active");
+    } else {
+      link.classList.remove("active");
+    }
+  });
+});
+</script>
+
+</body>
+</html>
+

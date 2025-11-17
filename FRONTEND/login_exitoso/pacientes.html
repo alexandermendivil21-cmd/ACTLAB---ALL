@@ -30,9 +30,14 @@
     <span class="nav-text">Inicio</span>
   </a>
 
-  <a href="/admin/pacientes" class="nav-item" data-tooltip="Pacientes">
+  <a href="/admin/pacientes" class="nav-item active" data-tooltip="Pacientes">
     <i class="fa-solid fa-user-injured nav-icon"></i>
     <span class="nav-text">Pacientes</span>
+  </a>
+
+  <a href="/admin/personal" class="nav-item" data-tooltip="Personal">
+    <i class="fa-solid fa-user-tie nav-icon"></i>
+    <span class="nav-text">Personal</span>
   </a>
 
   <a href="/admin/citas" class="nav-item" data-tooltip="Citas">
@@ -45,9 +50,19 @@
     <span class="nav-text">Resultados</span>
   </a>
 
+  <a href="/admin/diagnosticos" class="nav-item" data-tooltip="Diagnósticos">
+    <i class="fa-solid fa-file-medical nav-icon"></i>
+    <span class="nav-text">Diagnósticos</span>
+  </a>
+
   <a href="/admin/reportes" class="nav-item" data-tooltip="Reportes">
     <i class="fa-solid fa-chart-line nav-icon"></i>
     <span class="nav-text">Reportes</span>
+  </a>
+
+  <a href="/admin/perfil" class="nav-item" data-tooltip="Mi Perfil">
+    <i class="fa-solid fa-user nav-icon"></i>
+    <span class="nav-text">Mi Perfil</span>
   </a>
 </nav>
 
@@ -76,26 +91,56 @@
 
       <!-- CONTENIDO PRINCIPAL -->
       <section class="overview">
-        <div class="overview-header">
-          <h2>Gestión de Pacientes</h2>
-        </div>
-
-        <div class="card">
-          <div class="actions-top" style="display: none;">
+        <!-- HEADER -->
+        <div class="pacientes-header">
+          <div class="header-content">
+            <h2 class="section-title">Gestión de Pacientes</h2>
+            <p class="section-subtitle">Administra la información de todos los pacientes del sistema</p>
+          </div>
+          <div style="display: flex; gap: 0.75rem; align-items: center;">
+            <button id="btn-refresh" class="cta-button" style="background: var(--muted); padding: 0.6rem 1rem;">
+              <i class="fa-solid fa-rotate"></i> Actualizar
+            </button>
             <button id="btn-add" class="cta-button">
               <i class="fa-solid fa-user-plus"></i> Nuevo Paciente
             </button>
           </div>
+        </div>
 
+        <!-- FILTROS Y BÚSQUEDA -->
+        <div class="filters-container">
+          <div class="search-group">
+            <i class="fa-solid fa-search search-icon"></i>
+            <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nombre, apellido, email o celular...">
+          </div>
+        </div>
+
+        <!-- TABLA DE PACIENTES -->
+        <div class="card">
           <div class="table-wrapper">
-            <table class="user-table">
+            <!-- Indicador de carga -->
+            <div class="loading-state hidden" id="loadingState">
+              <div class="spinner"></div>
+              <p>Cargando pacientes...</p>
+            </div>
+
+            <!-- Estado vacío -->
+            <div class="empty-state hidden" id="emptyState">
+              <div class="empty-icon">
+                <i class="fa-solid fa-users-slash"></i>
+              </div>
+              <h3>No hay pacientes</h3>
+              <p>No se encontraron pacientes. ¡Comienza agregando uno nuevo!</p>
+            </div>
+
+            <table class="user-table" id="pacientesTable">
               <thead>
                 <tr>
                   <th>Nombres</th>
                   <th>Apellidos</th>
                   <th>Edad</th>
                   <th>Género</th>
-                  <th>Dirección</th>
+                  <th>Email</th>
                   <th>Celular</th>
                   <th>Acciones</th>
                 </tr>
@@ -113,46 +158,111 @@
   <!-- Modal -->
   <div id="modal-form" class="modal hidden">
     <div class="modal-content">
-      <h3 id="modal-title">Nuevo Paciente</h3>
+      <div class="modal-header">
+        <h3 id="modal-title">Nuevo Paciente</h3>
+        <button type="button" class="modal-close" id="btn-close-modal" aria-label="Cerrar modal">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
       <form id="form-user">
         <input type="hidden" id="user-id">
-        <div class="form-group">
-          <label>Nombres</label>
-          <input id="first-name" required>
+        
+        <!-- Sección: Documento -->
+        <div class="form-section">
+          <h4 class="form-section-title">Información de Documento</h4>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Tipo de documento *</label>
+              <select id="tipo-documento" required>
+                <option value="">Seleccione</option>
+                <option value="dni">DNI</option>
+                <option value="pasaporte">Pasaporte</option>
+                <option value="carnet-ext">Carné de extranjería</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Número de documento *</label>
+              <input id="num-documento" type="text" required placeholder="Solo números" maxlength="9">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Fecha de emisión *</label>
+            <input id="fecha-emision" type="date" required>
+            <small class="form-hint">Debe ser anterior a hoy</small>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Apellidos</label>
-          <input id="last-name" required>
+
+        <!-- Sección: Datos Personales -->
+        <div class="form-section">
+          <h4 class="form-section-title">Datos Personales</h4>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Nombres *</label>
+              <input id="first-name" required>
+            </div>
+            <div class="form-group">
+              <label>Apellidos *</label>
+              <input id="last-name" required>
+            </div>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Edad *</label>
+              <input id="age" type="number" min="0" max="120" required>
+            </div>
+            <div class="form-group">
+              <label>Género *</label>
+              <select id="gender" required>
+                <option value="">Seleccione</option>
+                <option value="masculino">Masculino</option>
+                <option value="femenino">Femenino</option>
+                <option value="otro">Otro</option>
+                <option value="no-especifica">Prefiero no decir</option>
+              </select>
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Edad</label>
-          <input id="age" type="number" required>
+
+        <!-- Sección: Contacto -->
+        <div class="form-section">
+          <h4 class="form-section-title">Información de Contacto</h4>
+          <div class="form-group">
+            <label>Dirección *</label>
+            <input id="address" required>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label>Celular *</label>
+              <input id="phone" type="text" required placeholder="9 dígitos" maxlength="9">
+              <small class="form-hint">9 dígitos</small>
+            </div>
+            <div class="form-group">
+              <label>Email *</label>
+              <input id="email" type="email" required placeholder="ejemplo@correo.com">
+            </div>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Género</label>
-          <select id="gender" required>
-            <option value="">Seleccione</option>
-            <option value="masculino">Masculino</option>
-            <option value="femenino">Femenino</option>
-            <option value="otro">Otro</option>
-            <option value="no-especifica">Prefiero no decir</option>
-          </select>
+
+        <!-- Sección: Credenciales -->
+        <div class="form-section" id="password-group">
+          <h4 class="form-section-title">Credenciales de Acceso</h4>
+          <div class="form-group">
+            <label>Contraseña *</label>
+            <input id="password" type="password" required placeholder="Mínimo 6 caracteres" minlength="6">
+            <small class="form-hint">Mínimo 6 caracteres</small>
+          </div>
         </div>
-        <div class="form-group">
-          <label>Dirección</label>
-          <input id="address" required>
-        </div>
-        <div class="form-group">
-          <label>Celular</label>
-          <input id="phone" required>
-        </div>
+
         <div class="modal-actions">
-          <button type="submit" class="btn-primary">Guardar</button>
           <button type="button" id="btn-cancel" class="btn-secondary">Cancelar</button>
+          <button type="submit" class="btn-primary">Guardar</button>
         </div>
       </form>
     </div>
   </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
 
   <!-- JS -->
   <script src="../public/admin-layout.js" defer></script>
@@ -160,7 +270,7 @@
 
   <script>
 document.addEventListener("DOMContentLoaded", () => {
-  const currentPath = window.location.pathname; // ejemplo: /admin/pacientes
+  const currentPath = window.location.pathname;
   const navLinks = document.querySelectorAll(".nav-item");
 
   navLinks.forEach(link => {

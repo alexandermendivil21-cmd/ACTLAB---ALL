@@ -1,0 +1,209 @@
+/* Estilos específicos para perfil médico */
+/* Los estilos base de .overview y .card vienen de admin-pacientes.css */
+
+/* Ajustes para el perfil médico */
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+/* Asegurar que las vistas de solo lectura y edición se muestren/oculten correctamente */
+#profile-view {
+  display: block;
+}
+
+#profile-edit-form {
+  display: none;
+}
+
+#horarios-view {
+  display: block;
+}
+
+#horarios-edit {
+  display: none;
+}
+
+/* Estilos para inputs del formulario */
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #1e88e5;
+  box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.1);
+}
+
+.form-input:hover {
+  border-color: #cbd5e0;
+}
+
+/* Estilos para botones */
+.btn-change-avatar:hover {
+  transform: scale(1.1);
+  background: #1565c0 !important;
+}
+
+.btn-cancel:hover {
+  background: #e8e8e8 !important;
+}
+
+.btn-add-horario:hover {
+  background: #d1e7fd !important;
+}
+
+/* Responsive para formularios en perfil médico */
+@media (max-width: 768px) {
+  .overview form div[style*="grid-template-columns: repeat(2, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+  
+  #horarios-container > div {
+    flex-direction: column !important;
+  }
+  
+  #horarios-container select,
+  #horarios-container input[type="time"] {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+  
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+}
+
+/* Toast notifications */
+#toastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  min-width: 300px;
+  max-width: 400px;
+  animation: slideInRight 0.3s ease;
+}
+
+.toast.success {
+  border-left: 4px solid #28a745;
+}
+
+.toast.error {
+  border-left: 4px solid #dc3545;
+}
+
+.toast.info {
+  border-left: 4px solid #17a2b8;
+}
+
+.toast-icon {
+  font-size: 1.25rem;
+}
+
+.toast.success .toast-icon {
+  color: #28a745;
+}
+
+.toast.error .toast-icon {
+  color: #dc3545;
+}
+
+.toast.info .toast-icon {
+  color: #17a2b8;
+}
+
+.toast-content {
+  flex: 1;
+}
+
+.toast-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.toast-message {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  font-size: 1.1rem;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toast-close:hover {
+  color: #333;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .horario-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .horario-edit-form {
+    flex-direction: column;
+  }
+  
+  .horario-edit-form select,
+  .horario-edit-form input {
+    width: 100%;
+  }
+}
+

@@ -1,5 +1,9 @@
 // FRONTEND/public/admin-citas.js
 document.addEventListener('DOMContentLoaded', () => {
+  // Verificar si el usuario es médico
+  const userCargo = sessionStorage.getItem("userCargo");
+  const isMedico = userCargo === "medico";
+  
   // Variables globales
   let todasLasCitas = [];
   let citasFiltradas = [];
@@ -50,10 +54,43 @@ document.addEventListener('DOMContentLoaded', () => {
     filtroPaciente.addEventListener('input', aplicarFiltros);
     btnLimpiarFiltros.addEventListener('click', limpiarFiltros);
 
-    // Modal
-    btnAgregarCita.addEventListener('click', () => abrirModal(false));
+    // Modal - Solo si no es médico
+    if (!isMedico) {
+      btnAgregarCita.addEventListener('click', () => abrirModal(false));
+    } else {
+      // Ocultar botón de agregar cita para médicos
+      if (btnAgregarCita) {
+        btnAgregarCita.style.display = 'none';
+      }
+    }
     btnCerrarModal.addEventListener('click', cerrarModal);
     btnCancelar.addEventListener('click', cerrarModal);
+
+    // Botón de actualizar
+    const btnRefreshCitas = document.getElementById('btnRefreshCitas');
+    if (btnRefreshCitas) {
+      btnRefreshCitas.addEventListener('click', async () => {
+        btnRefreshCitas.disabled = true;
+        const originalHTML = btnRefreshCitas.innerHTML;
+        btnRefreshCitas.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Actualizando...';
+        
+        try {
+          await cargarCitas();
+          // Mostrar mensaje de éxito si hay alguna función de notificación
+          if (typeof alert !== 'undefined') {
+            // Opcional: mostrar mensaje de éxito
+          }
+        } catch (error) {
+          console.error('Error al actualizar citas:', error);
+          if (typeof alert !== 'undefined') {
+            alert('Error al actualizar las citas');
+          }
+        } finally {
+          btnRefreshCitas.disabled = false;
+          btnRefreshCitas.innerHTML = originalHTML;
+        }
+      });
+    }
     formCita.addEventListener('submit', guardarCita);
 
     // Calendario
@@ -202,12 +239,22 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    // Filtro por paciente (busca en email)
+    // Filtro por paciente (busca en nombre, apellidos y email)
     const pacienteFiltro = filtroPaciente.value.toLowerCase().trim();
     if (pacienteFiltro) {
-      citasFiltradas = citasFiltradas.filter(cita => 
-        cita.email.toLowerCase().includes(pacienteFiltro)
-      );
+      citasFiltradas = citasFiltradas.filter(cita => {
+        const emailMatch = cita.email.toLowerCase().includes(pacienteFiltro);
+        const nombreMatch = cita.paciente && cita.paciente.nombres && 
+          cita.paciente.nombres.toLowerCase().includes(pacienteFiltro);
+        const apellidoMatch = cita.paciente && cita.paciente.apellidos && 
+          cita.paciente.apellidos.toLowerCase().includes(pacienteFiltro);
+        const nombreCompleto = cita.paciente && cita.paciente.nombres && cita.paciente.apellidos
+          ? `${cita.paciente.nombres} ${cita.paciente.apellidos}`.toLowerCase()
+          : '';
+        const nombreCompletoMatch = nombreCompleto.includes(pacienteFiltro);
+        
+        return emailMatch || nombreMatch || apellidoMatch || nombreCompletoMatch;
+      });
     }
 
     renderizarCitas();
@@ -246,11 +293,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const horaFormateada = cita.horario || 'Sin hora';
 
+        // Obtener nombre del paciente
+        let nombrePaciente = 'N/A';
+        if (cita.paciente && cita.paciente.nombres && cita.paciente.apellidos) {
+          nombrePaciente = `${cita.paciente.nombres} ${cita.paciente.apellidos}`;
+        } else if (cita.paciente && cita.paciente.nombres) {
+          nombrePaciente = cita.paciente.nombres;
+        }
+
+        // Obtener email
+        const emailPaciente = cita.email || 'N/A';
+
+        // Obtener motivo de la cita
+        const motivoCita = cita.motivoCita || 'N/A';
+
         return `
           <tr>
             <td>${fechaFormateada} ${horaFormateada}</td>
-            <td>${cita.email}</td>
+            <td>${nombrePaciente}</td>
+            <td>${emailPaciente}</td>
             <td>${cita.especialidad}</td>
+            <td>${motivoCita}</td>
             <td>
               <span class="status-badge ${cita.estado || 'pendiente'}">
                 ${cita.estado || 'pendiente'}
@@ -261,12 +324,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <button class="btn-action view" onclick="verCita('${cita._id}')" title="Ver">
                   <i class="fa-solid fa-eye"></i>
                 </button>
+                ${!isMedico ? `
                 <button class="btn-action edit" onclick="editarCita('${cita._id}')" title="Editar">
                   <i class="fa-solid fa-pencil"></i>
                 </button>
                 <button class="btn-action delete" onclick="eliminarCitaConfirm('${cita._id}')" title="Eliminar">
                   <i class="fa-solid fa-trash"></i>
                 </button>
+                ` : ''}
               </div>
             </td>
           </tr>
@@ -279,6 +344,13 @@ document.addEventListener('DOMContentLoaded', () => {
   // FUNCIONES DEL MODAL
   // ============================================
   function abrirModal(editando, cita = null) {
+    // Verificar si el usuario es médico
+    const userCargo = sessionStorage.getItem("userCargo");
+    if (userCargo === "medico") {
+      alert('No tienes permisos para agregar o editar citas');
+      return;
+    }
+    
     citaEditando = editando ? cita : null;
     const modalTitulo = document.getElementById('modalTitulo');
     
@@ -289,7 +361,15 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('inputFecha').value = cita.fechaCita ? new Date(cita.fechaCita).toISOString().split('T')[0] : '';
       document.getElementById('inputHorario').value = cita.horario || '';
       document.getElementById('inputMotivo').value = cita.motivoCita || '';
-      document.getElementById('inputEstado').value = cita.estado || 'pendiente';
+      
+      // Establecer estado, pero si es "completada" cambiarlo a "confirmada" ya que no está disponible en el formulario
+      const estadoSelect = document.getElementById('inputEstado');
+      const estadoCita = cita.estado || 'pendiente';
+      if (estadoCita === 'completada') {
+        estadoSelect.value = 'confirmada'; // Cambiar a confirmada si estaba completada
+      } else {
+        estadoSelect.value = estadoCita;
+      }
     } else {
       modalTitulo.textContent = 'Agregar Nueva Cita';
       formCita.reset();
@@ -308,6 +388,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function guardarCita(e) {
     e.preventDefault();
+    
+    // Verificar si el usuario es médico
+    const userCargo = sessionStorage.getItem("userCargo");
+    if (userCargo === "medico") {
+      alert('No tienes permisos para agregar o editar citas');
+      cerrarModal();
+      return;
+    }
 
     const datos = {
       email: document.getElementById('inputEmail').value,
@@ -340,11 +428,24 @@ document.addEventListener('DOMContentLoaded', () => {
   window.verCita = function(id) {
     const cita = todasLasCitas.find(c => c._id === id);
     if (cita) {
-      alert(`Detalles de la cita:\n\nEmail: ${cita.email}\nTipo: ${cita.especialidad}\nFecha: ${new Date(cita.fechaCita).toLocaleDateString()}\nHorario: ${cita.horario}\nMotivo: ${cita.motivoCita}\nEstado: ${cita.estado || 'pendiente'}`);
+      const nombrePaciente = cita.paciente && cita.paciente.nombres && cita.paciente.apellidos
+        ? `${cita.paciente.nombres} ${cita.paciente.apellidos}`
+        : cita.paciente && cita.paciente.nombres
+        ? cita.paciente.nombres
+        : 'N/A';
+      
+      alert(`Detalles de la cita:\n\nPaciente: ${nombrePaciente}\nEmail: ${cita.email}\nTipo: ${cita.especialidad}\nFecha: ${new Date(cita.fechaCita).toLocaleDateString()}\nHorario: ${cita.horario}\nMotivo: ${cita.motivoCita}\nEstado: ${cita.estado || 'pendiente'}`);
     }
   };
 
   window.editarCita = function(id) {
+    // Verificar si el usuario es médico
+    const userCargo = sessionStorage.getItem("userCargo");
+    if (userCargo === "medico") {
+      alert('No tienes permisos para editar citas');
+      return;
+    }
+    
     const cita = todasLasCitas.find(c => c._id === id);
     if (cita) {
       abrirModal(true, cita);
@@ -352,6 +453,13 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   window.eliminarCitaConfirm = async function(id) {
+    // Verificar si el usuario es médico
+    const userCargo = sessionStorage.getItem("userCargo");
+    if (userCargo === "medico") {
+      alert('No tienes permisos para eliminar citas');
+      return;
+    }
+    
     if (!confirm('¿Está seguro de eliminar esta cita?')) {
       return;
     }

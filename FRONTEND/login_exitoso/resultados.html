@@ -36,6 +36,11 @@
           <span class="nav-text">Pacientes</span>
         </a>
 
+        <a href="/admin/personal" class="nav-item" data-tooltip="Personal">
+          <i class="fa-solid fa-user-tie nav-icon"></i>
+          <span class="nav-text">Personal</span>
+        </a>
+
         <a href="/admin/citas" class="nav-item" data-tooltip="Citas">
           <i class="fa-solid fa-calendar-days nav-icon"></i>
           <span class="nav-text">Citas</span>
@@ -46,9 +51,19 @@
           <span class="nav-text">Resultados</span>
         </a>
 
+        <a href="/admin/diagnosticos" class="nav-item" data-tooltip="Diagnósticos">
+          <i class="fa-solid fa-file-medical nav-icon"></i>
+          <span class="nav-text">Diagnósticos</span>
+        </a>
+
         <a href="/admin/reportes" class="nav-item" data-tooltip="Reportes">
           <i class="fa-solid fa-chart-line nav-icon"></i>
           <span class="nav-text">Reportes</span>
+        </a>
+
+        <a href="/admin/perfil" class="nav-item" data-tooltip="Mi Perfil">
+          <i class="fa-solid fa-user nav-icon"></i>
+          <span class="nav-text">Mi Perfil</span>
         </a>
       </nav>
 
@@ -67,7 +82,6 @@
           <button class="btn-icon" id="sidebarToggle" aria-label="Abrir menú">
             <i class="fa-solid fa-bars"></i>
           </button>
-          <h1>Gestión de Resultados</h1>
         </div>
         <div class="right">
           <img src="../assets2/img/avatar-sofia.jpg" alt="Admin" class="avatar small-avatar" />
@@ -86,6 +100,42 @@
             <i class="fa-solid fa-upload"></i>
             Subir Resultado
           </button>
+        </div>
+
+        <!-- TABLA DE MUESTRAS -->
+        <div class="card" style="margin-bottom: 2rem;">
+          <h2 class="card-title" style="margin-bottom: 1.5rem;">
+            <i class="fa-solid fa-vial-virus"></i> Muestras de Laboratorio
+          </h2>
+          <div class="table-container">
+            <table class="resultados-table" id="tablaMuestras">
+              <thead>
+                <tr>
+                  <th>Nombre del Paciente</th>
+                  <th>Fecha de Recolección</th>
+                  <th>Estado de la Muestra</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="muestrasBody">
+                <!-- Las muestras se cargarán dinámicamente aquí -->
+                <tr>
+                  <td colspan="4" style="text-align: center; padding: 2rem; color: #666;">
+                    Cargando muestras...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <!-- MENSAJE VACÍO -->
+            <div class="empty-state hidden" id="emptyStateMuestras">
+              <div class="empty-icon">
+                <i class="fa-solid fa-vial"></i>
+              </div>
+              <h3>No hay muestras</h3>
+              <p>No se encontraron muestras registradas.</p>
+            </div>
+          </div>
         </div>
 
         <!-- FILTROS -->

@@ -25,6 +25,9 @@
           <option value="Inmunología">Inmunología</option>
           <option value="Bioquímica">Bioquímica</option>
         </select>
+        <div id="precioEspecialidad" style="margin-top: 0.5rem; padding: 0.75rem; background: #eff6ff; border-radius: 8px; display: none;">
+          <strong style="color: #059669; font-size: 1.125rem;">Monto a pagar: <span id="montoEspecialidad">S/ 0.00</span></strong>
+        </div>
       </div>
 
       <!-- Fecha de Cita -->
@@ -57,13 +60,11 @@
       <!-- Motivo de la Cita -->
       <div class="form-group">
         <label for="motivoCita">Motivo de la Cita</label>
-        <textarea 
-          id="motivoCita" 
-          name="motivoCita" 
-          rows="5" 
-          placeholder="Describa el motivo de su cita médica. Incluya síntomas relevantes, medicamentos actuales o cualquier información importante."
-          required
-        ></textarea>
+        <select id="motivoCita" name="motivoCita" required>
+          <option value="">Seleccione un motivo</option>
+          <option value="Análisis">Análisis</option>
+          <option value="Consulta Médica">Consulta Médica</option>
+        </select>
       </div>
 
       <!-- Botón Solicitar -->

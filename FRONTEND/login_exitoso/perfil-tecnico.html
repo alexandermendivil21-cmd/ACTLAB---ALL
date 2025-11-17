@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Mi Perfil | SWALCACT</title>
+
+  <!-- Fuentes & Iconos -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" />
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="../Assets/base.css" />
+  <link rel="stylesheet" href="../Assets/layout.css" />
+  <link rel="stylesheet" href="../Assets/components.css" />
+  <link rel="stylesheet" href="../Assets/admin-pacientes.css" />
+  <link rel="stylesheet" href="../Assets/perfil-medico.css" />
+</head>
+
+<body>
+  <div class="app">
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <img src="../assets2/img/logo.jpg" alt="Logo SWALCACT" class="brand-logo" />
+        <span class="brand-text">SWALCACT</span>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="/admin" class="nav-item" data-tooltip="Inicio">
+          <i class="fa-solid fa-house nav-icon"></i>
+          <span class="nav-text">Inicio</span>
+        </a>
+
+        <a href="/admin/pacientes" class="nav-item" data-tooltip="Pacientes">
+          <i class="fa-solid fa-user-injured nav-icon"></i>
+          <span class="nav-text">Pacientes</span>
+        </a>
+
+        <a href="/admin/personal" class="nav-item" data-tooltip="Personal">
+          <i class="fa-solid fa-user-tie nav-icon"></i>
+          <span class="nav-text">Personal</span>
+        </a>
+
+        <a href="/admin/citas" class="nav-item" data-tooltip="Citas">
+          <i class="fa-solid fa-calendar-days nav-icon"></i>
+          <span class="nav-text">Citas</span>
+        </a>
+
+        <a href="/admin/resultados" class="nav-item" data-tooltip="Resultados">
+          <i class="fa-solid fa-vial nav-icon"></i>
+          <span class="nav-text">Resultados</span>
+        </a>
+
+        <a href="/admin/diagnosticos" class="nav-item" data-tooltip="Diagnósticos">
+          <i class="fa-solid fa-file-medical nav-icon"></i>
+          <span class="nav-text">Diagnósticos</span>
+        </a>
+
+        <a href="/admin/pagos" class="nav-item" data-tooltip="Pagos">
+          <i class="fa-solid fa-coins nav-icon"></i>
+          <span class="nav-text">Pagos</span>
+        </a>
+
+        <a href="/admin/reportes" class="nav-item" data-tooltip="Reportes">
+          <i class="fa-solid fa-chart-line nav-icon"></i>
+          <span class="nav-text">Reportes</span>
+        </a>
+
+        <a href="/admin/perfil-tecnico" class="nav-item active" data-tooltip="Mi Perfil">
+          <i class="fa-solid fa-user nav-icon"></i>
+          <span class="nav-text">Mi Perfil</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="/login" class="nav-item" data-tooltip="Salir">
+          <i class="fa-solid fa-right-from-bracket nav-icon"></i>
+          <span class="nav-text">Salir</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <div class="left">
+          <button class="btn-icon" id="sidebarToggle" aria-label="Abrir menú">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+        </div>
+        <div class="right">
+          <span id="userName" style="margin-right: 1rem; font-weight: 600;"></span>
+        </div>
+      </header>
+
+      <section class="overview">
+        <!-- HEADER -->
+        <div class="pacientes-header">
+          <div class="header-content">
+            <h2 class="section-title">Mi Perfil</h2>
+            <p class="section-subtitle">Gestiona tu información personal</p>
+          </div>
+        </div>
+
+        <!-- Cabecera de perfil -->
+        <div class="card">
+          <div class="profile-header" style="display: flex; align-items: center; gap: 1.5rem; padding: 1rem 0;">
+            <div style="position: relative;">
+              <img id="profile-avatar" src="../assets2/img/avatar-sofia.jpg" alt="Foto de perfil" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #1e88e5; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+              <button id="btn-change-avatar" class="btn-change-avatar" style="position: absolute; bottom: 0; right: 0; background: #1e88e5; color: white; border: none; border-radius: 50%; width: 36px; height: 36px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: 0 2px 6px rgba(0,0,0,0.2); transition: all 0.2s;" title="Cambiar foto de perfil">
+                <i class="fa-solid fa-camera"></i>
+              </button>
+            </div>
+            <div>
+              <h2 id="profile-name" style="font-size: 1.5rem; font-weight: 700; color: #1e88e5; margin: 0 0 0.25rem 0;">Cargando...</h2>
+              <p class="muted" id="profile-cargo" style="margin: 0; font-size: 0.95rem; color: #757575;">Técnico de Laboratorio</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Input oculto para seleccionar imagen -->
+        <input type="file" id="input-imagen" accept="image/*" style="display: none;">
+        <!-- Datos básicos editables -->
+        <div class="card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3 style="font-size: 1.25rem; font-weight: 600; color: #1e88e5; margin: 0;">Datos básicos</h3>
+            <button id="btn-edit-profile" class="cta-button" style="padding: 0.6rem 1.25rem; font-size: 0.9rem;">
+              <i class="fa-solid fa-pen"></i> Editar
+            </button>
+          </div>
+            
+          <!-- Vista de solo lectura -->
+          <div id="profile-view">
+            <div class="detail-row" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
+              <i class="fa-solid fa-user" style="color: #1e88e5; min-width: 24px; font-size: 1.1rem;"></i>
+              <div style="flex: 1;">
+                <span style="font-weight: 600; color: #757575; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Edad</span>
+                <div id="profile-edad" style="color: #212121; font-size: 0.95rem; margin-top: 0.25rem;">-</div>
+              </div>
+            </div>
+            <div class="detail-row" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
+              <i class="fa-solid fa-venus-mars" style="color: #1e88e5; min-width: 24px; font-size: 1.1rem;"></i>
+              <div style="flex: 1;">
+                <span style="font-weight: 600; color: #757575; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Género</span>
+                <div id="profile-genero" style="color: #212121; font-size: 0.95rem; margin-top: 0.25rem;">-</div>
+              </div>
+            </div>
+            <div class="detail-row" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
+              <i class="fa-solid fa-id-card" style="color: #1e88e5; min-width: 24px; font-size: 1.1rem;"></i>
+              <div style="flex: 1;">
+                <span style="font-weight: 600; color: #757575; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Tipo de Documento</span>
+                <div id="profile-tipo-doc" style="color: #212121; font-size: 0.95rem; margin-top: 0.25rem;">-</div>
+              </div>
+            </div>
+            <div class="detail-row" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
+              <i class="fa-solid fa-hashtag" style="color: #1e88e5; min-width: 24px; font-size: 1.1rem;"></i>
+              <div style="flex: 1;">
+                <span style="font-weight: 600; color: #757575; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Número de Documento</span>
+                <div id="profile-num-doc" style="color: #212121; font-size: 0.95rem; margin-top: 0.25rem;">-</div>
+              </div>
+            </div>
+            <div class="detail-row" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
+              <i class="fa-solid fa-envelope" style="color: #1e88e5; min-width: 24px; font-size: 1.1rem;"></i>
+              <div style="flex: 1;">
+                <span style="font-weight: 600; color: #757575; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Email</span>
+                <div id="profile-email" style="color: #212121; font-size: 0.95rem; margin-top: 0.25rem;">-</div>
+              </div>
+            </div>
+            <div class="detail-row" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
+              <i class="fa-solid fa-phone" style="color: #1e88e5; min-width: 24px; font-size: 1.1rem;"></i>
+              <div style="flex: 1;">
+                <span style="font-weight: 600; color: #757575; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Celular</span>
+                <div id="profile-celular" style="color: #212121; font-size: 0.95rem; margin-top: 0.25rem;">-</div>
+              </div>
+            </div>
+            <div class="detail-row" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; border-bottom: 1px solid #e5e7eb;">
+              <i class="fa-solid fa-map-marker-alt" style="color: #1e88e5; min-width: 24px; font-size: 1.1rem;"></i>
+              <div style="flex: 1;">
+                <span style="font-weight: 600; color: #757575; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Dirección</span>
+                <div id="profile-direccion" style="color: #212121; font-size: 0.95rem; margin-top: 0.25rem;">-</div>
+              </div>
+            </div>
+            <div class="detail-row" style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0;">
+              <i class="fa-solid fa-circle-check" style="color: #1e88e5; min-width: 24px; font-size: 1.1rem;"></i>
+              <div style="flex: 1;">
+                <span style="font-weight: 600; color: #757575; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;">Estado</span>
+                <div id="profile-estado" style="color: #212121; font-size: 0.95rem; margin-top: 0.25rem;">-</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Vista de edición -->
+          <form id="profile-edit-form" style="display: none;" enctype="multipart/form-data">
+            <div class="form-group" style="margin-bottom: 1.5rem;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem; color: #212121;">Imagen de perfil</label>
+              <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <img id="preview-imagen" src="" alt="Vista previa" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #1e88e5; display: none;">
+                <div style="flex: 1;">
+                  <input type="file" id="edit-imagen" accept="image/*" class="form-input" style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 0.95rem; transition: all 0.2s;">
+                  <small style="color: #757575; font-size: 0.85rem; margin-top: 0.5rem; display: block;">Formatos permitidos: JPEG, PNG, GIF, WEBP (máx. 5MB)</small>
+                </div>
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-group">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem; color: #212121;">Nombres</label>
+                <input type="text" id="edit-nombres" class="form-input" required style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 0.95rem; transition: all 0.2s;">
+              </div>
+              <div class="form-group">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem; color: #212121;">Apellidos</label>
+                <input type="text" id="edit-apellidos" class="form-input" required style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 0.95rem; transition: all 0.2s;">
+              </div>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-group">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem; color: #212121;">Edad</label>
+                <input type="number" id="edit-edad" class="form-input" min="0" max="120" required style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 0.95rem; transition: all 0.2s;">
+              </div>
+              <div class="form-group">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem; color: #212121;">Género</label>
+                <select id="edit-genero" class="form-input" required style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 0.95rem; transition: all 0.2s; background: white; cursor: pointer;">
+                  <option value="masculino">Masculino</option>
+                  <option value="femenino">Femenino</option>
+                  <option value="otro">Otro</option>
+                  <option value="no-especifica">Prefiero no decir</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem; color: #212121;">Dirección</label>
+              <input type="text" id="edit-direccion" class="form-input" required style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 0.95rem; transition: all 0.2s;">
+            </div>
+            <div class="form-group" style="margin-bottom: 1rem;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.95rem; color: #212121;">Celular</label>
+              <input type="tel" id="edit-celular" class="form-input" pattern="[0-9]{9,15}" required style="width: 100%; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 0.95rem; transition: all 0.2s;">
+            </div>
+            <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
+              <button type="submit" class="cta-button" style="flex: 1; padding: 0.75rem;">
+                <i class="fa-solid fa-check"></i> Guardar Cambios
+              </button>
+              <button type="button" id="btn-cancel-edit" class="btn-cancel" style="flex: 1; padding: 0.75rem; background: #f5f5f5; color: #212121; border: 2px solid #e5e7eb; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 10000;"></div>
+
+  <script src="../public/admin-layout.js"></script>
+  <script src="../public/perfil-tecnico.js"></script>
+</body>
+</html>
+

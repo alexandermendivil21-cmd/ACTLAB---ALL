@@ -12,6 +12,60 @@
   display: none !important;
 }
 
+/* ============================================
+   ESTILOS PARA TABLA DE MUESTRAS
+   ============================================ */
+.status-select {
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.status-select.recolectada {
+  border-color: #10b981;
+  color: #059669;
+  background: #d1fae5;
+}
+
+.status-select.en-proceso {
+  border-color: #f59e0b;
+  color: #d97706;
+  background: #fef3c7;
+}
+
+.status-select:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.status-select:focus {
+  outline: none;
+  border-color: #0284c7;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.1);
+}
+
+.status-badge.recolectada {
+  background: #d1fae5;
+  color: #059669;
+  padding: 0.35rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-badge.en-proceso {
+  background: #fef3c7;
+  color: #d97706;
+  padding: 0.35rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 /* HEADER */
 .resultados-header {
   display: flex;

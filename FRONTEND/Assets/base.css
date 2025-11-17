@@ -29,6 +29,14 @@ img { display: block; max-width: 100%; }
 button { cursor: pointer; border: none; background: none; font-family: inherit; }
 .muted { color: var(--muted); }
 
+/* Títulos de sección - color consistente */
+.section-header h1,
+.section-header h2,
+.pagos .section-header h1,
+.historial .section-header h1 {
+  color: var(--primary);
+}
+
 /* 🌐 Responsive general */
 @media (max-width: 768px) {
   .main {

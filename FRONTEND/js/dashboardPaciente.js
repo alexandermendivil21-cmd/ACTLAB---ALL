@@ -28,13 +28,29 @@ document.addEventListener("DOMContentLoaded", () => {
           content.innerHTML = html;
           content.style.opacity = 1;
 
+          // Ejecutar scripts inline si existen
+          const scripts = content.querySelectorAll('script');
+          scripts.forEach((oldScript) => {
+            const newScript = document.createElement('script');
+            Array.from(oldScript.attributes).forEach((attr) => {
+              newScript.setAttribute(attr.name, attr.value);
+            });
+            newScript.appendChild(document.createTextNode(oldScript.innerHTML));
+            oldScript.parentNode.replaceChild(newScript, oldScript);
+          });
+
           // Inicializar vistas específicas
           if (section === "citas") initCitasView();
           else if (section === "solicitar-cita") initSolicitarCitaView();
+          else if (section === "pagar-cita") initPagarCitaView();
           else if (section === "resultados") initResultadosView();
           else if (section === "ver-resultado") initVerResultadoView();
           else if (section === "profile") initProfileView();
           else if (section === "overview") initOverviewView();
+          else if (section === "pagos") initPagosView();
+          else if (section === "medicacion") initMedicacionView();
+          else if (section === "doctores") initDoctoresView();
+          else if (section === "perfil-doctor") initPerfilDoctorView();
         }, 180);
       })
       .catch((err) => {
@@ -104,7 +120,24 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const renderCitas = (citas) => {
+  // ============================================================
+  // 🔹 OBTENER PRECIO POR ESPECIALIDAD (GLOBAL)
+  // ============================================================
+  window.getPrecioEspecialidad = (especialidad) => {
+    const precios = {
+      "Cardiología": 80.00,
+      "Dermatología": 60.00,
+      "Pediatría": 50.00,
+      "Traumatología": 70.00,
+      "Neurología": 90.00,
+      "Hematología": 65.00,
+      "Inmunología": 75.00,
+      "Bioquímica": 55.00,
+    };
+    return precios[especialidad] || 50.00; // Precio por defecto
+  };
+
+  const renderCitas = (citas, citasConPago = new Set()) => {
   const citasList = document.getElementById("citas-list");
   if (!citasList) return;
 
@@ -125,6 +158,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const estado = cita.estado || "Pendiente";
       const especialidad = cita.especialidad || "No especificada";
       const horario = cita.horario || "-";
+      const precio = getPrecioEspecialidad(especialidad);
+      const citaIdStr = cita._id.toString();
+      const tienePago = citasConPago.has(citaIdStr);
+      const estaCancelada = estado.toLowerCase() === "cancelada";
+      
+      // Determinar si los botones deben estar desactivados
+      const pagarDeshabilitado = tienePago || estaCancelada;
+      const cancelarDeshabilitado = estaCancelada;
 
       return `
       <div class="cita-card">
@@ -133,11 +174,29 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="cita-detail"><strong>Especialidad:</strong> ${especialidad}</div>
           <div class="cita-detail"><strong>Motivo:</strong> ${motivo}</div>
           <div class="cita-detail"><strong>Estado:</strong> <span class="chip ${estado === "Pendiente" ? "secondary" : estado === "Cancelada" ? "danger" : "success"}">${estado}</span></div>
+          <div class="cita-detail" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb;">
+            ${tienePago 
+              ? '<strong style="color: #059669; font-size: 1.125rem;"><i class="fa-solid fa-check-circle"></i> Pago realizado: S/ ' + precio.toFixed(2) + '</strong>'
+              : '<strong style="color: #059669; font-size: 1.125rem;">Monto a pagar: S/ ' + precio.toFixed(2) + '</strong>'
+            }
+          </div>
         </div>
         <div class="cita-actions">
+          <button 
+            class="chip" 
+            onclick="${pagarDeshabilitado ? '' : `pagarCita('${cita._id}')`}" 
+            ${pagarDeshabilitado ? 'disabled' : ''}
+            style="background: ${pagarDeshabilitado ? '#9ca3af' : '#059669'}; color: white; border: none; font-weight: 600; cursor: ${pagarDeshabilitado ? 'not-allowed' : 'pointer'}; opacity: ${pagarDeshabilitado ? '0.6' : '1'};">
+            <i class="fa-solid fa-credit-card"></i> ${tienePago ? 'Pagado' : 'Pagar'}
+          </button>
           <button class="chip" onclick="editarCitaPrompt('${cita._id}')"><i class="fa-solid fa-pen"></i> Editar</button>
-          <button class="chip danger" onclick="cancelarCita('${cita._id}')"><i class="fa-solid fa-ban"></i> Cancelar</button>
-          <button class="chip" onclick="pagarCita('${cita._id}')"><i class="fa-solid fa-credit-card"></i> Pagar</button>
+          <button 
+            class="chip danger" 
+            onclick="${cancelarDeshabilitado ? '' : `cancelarCita('${cita._id}')`}" 
+            ${cancelarDeshabilitado ? 'disabled' : ''}
+            style="background: ${cancelarDeshabilitado ? '#9ca3af' : '#ef4444'}; color: white; border: none; cursor: ${cancelarDeshabilitado ? 'not-allowed' : 'pointer'}; opacity: ${cancelarDeshabilitado ? '0.6' : '1'};">
+            <i class="fa-solid fa-ban"></i> Cancelar
+          </button>
         </div>
       </div>
       `;
@@ -152,9 +211,61 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const citasList = document.getElementById("citas-list");
     if (citasList) {
+      const email = sessionStorage.getItem("userEmail");
       const citas = await getCitas();
-      renderCitas(citas);
+      
+      // Obtener pagos existentes para verificar qué citas ya tienen pago
+      let citasConPago = new Set();
+      if (email) {
+        try {
+          const resPagos = await fetch(`http://localhost:5000/api/pagos?email=${encodeURIComponent(email)}`);
+          if (resPagos.ok) {
+            const pagos = await resPagos.json();
+            pagos.forEach(pago => {
+              if (pago.citaId) {
+                const citaId = typeof pago.citaId === 'object' && pago.citaId._id 
+                  ? pago.citaId._id.toString() 
+                  : pago.citaId.toString();
+                citasConPago.add(citaId);
+              }
+            });
+          }
+        } catch (error) {
+          console.warn('Error al verificar pagos:', error);
+        }
+      }
+      
+      renderCitas(citas, citasConPago);
     }
+  };
+
+  // Función auxiliar para recargar citas con pagos
+  const recargarCitasConPagos = async () => {
+    const email = sessionStorage.getItem("userEmail");
+    const citas = await getCitas();
+    
+    // Obtener pagos existentes para verificar qué citas ya tienen pago
+    let citasConPago = new Set();
+    if (email) {
+      try {
+        const resPagos = await fetch(`http://localhost:5000/api/pagos?email=${encodeURIComponent(email)}`);
+        if (resPagos.ok) {
+          const pagos = await resPagos.json();
+          pagos.forEach(pago => {
+            if (pago.citaId) {
+              const citaId = typeof pago.citaId === 'object' && pago.citaId._id 
+                ? pago.citaId._id.toString() 
+                : pago.citaId.toString();
+              citasConPago.add(citaId);
+            }
+          });
+        }
+      } catch (error) {
+        console.warn('Error al verificar pagos:', error);
+      }
+    }
+    
+    renderCitas(citas, citasConPago);
   };
 
   // =====================
@@ -166,8 +277,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch(`/api/citas/${id}/cancelar`, { method: 'PATCH' });
       if (!res.ok) throw new Error('No se pudo cancelar la cita');
       alert('Cita cancelada. El administrador fue notificado.');
-      const citas = await getCitas();
-      renderCitas(citas);
+      await recargarCitasConPagos();
     } catch (e) {
       alert(e.message);
     }
@@ -186,28 +296,45 @@ document.addEventListener("DOMContentLoaded", () => {
       });
       if (!res.ok) throw new Error('No se pudo editar la cita');
       alert('Cita actualizada. El administrador fue notificado.');
-      const citas = await getCitas();
-      renderCitas(citas);
+      await recargarCitasConPagos();
     } catch (e) {
       alert(e.message);
     }
   };
 
   window.pagarCita = async (id) => {
-    const monto = 50; // monto fijo de ejemplo
-    const email = sessionStorage.getItem('userEmail');
-    if (!email) return alert('No se encontró el email del usuario');
-    try {
-      const res = await fetch('/api/pagos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, citaId: id, monto, metodo: 'tarjeta' })
-      });
-      if (!res.ok) throw new Error('No se pudo registrar el pago');
-      alert('Pago realizado con éxito. El administrador fue notificado.');
-    } catch (e) {
-      alert(e.message);
+    console.log('Botón Pagar presionado para cita:', id);
+    
+    // Verificar si la cita ya tiene pago antes de proceder
+    const email = sessionStorage.getItem("userEmail");
+    if (email) {
+      try {
+        const resPagos = await fetch(`http://localhost:5000/api/pagos?email=${encodeURIComponent(email)}`);
+        if (resPagos.ok) {
+          const pagos = await resPagos.json();
+          const tienePago = pagos.some(pago => {
+            const citaId = typeof pago.citaId === 'object' && pago.citaId !== null && pago.citaId._id
+              ? pago.citaId._id.toString()
+              : (pago.citaId ? pago.citaId.toString() : null);
+            return citaId === id.toString();
+          });
+          
+          if (tienePago) {
+            alert('Esta cita ya tiene un pago registrado. Puedes ver el pago en la sección "Pagos".');
+            loadSection('pagos');
+            return;
+          }
+        }
+      } catch (error) {
+        console.warn('Error al verificar pago:', error);
+        // Continuar con el proceso si hay error en la verificación
+      }
     }
+    
+    // Guardar el ID de la cita y redirigir directamente a la vista de pago
+    sessionStorage.setItem('ultimaCitaId', id);
+    sessionStorage.removeItem('citaIdPagar'); // Limpiar por si acaso
+    loadSection('pagar-cita');
   };
 
   // ============================================================
@@ -245,6 +372,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       console.log("Cita registrada correctamente:", data);
 
+      // Limpiar datos del doctor seleccionado después de registrar la cita
+      sessionStorage.removeItem("doctorSeleccionadoId");
+      sessionStorage.removeItem("especialidadSeleccionada");
+
       showModal(true, "Cita registrada", "Tu cita ha sido registrada correctamente.");
     } catch (error) {
       console.error("Error al guardar la cita:", error);
@@ -280,18 +411,133 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   // 🔹 SOLICITAR CITA VIEW
   // ============================================================
-  const initSolicitarCitaView = () => {
+  const initSolicitarCitaView = async () => {
+    // Pequeño delay para asegurar que el DOM esté completamente cargado
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
     const btnVolverCitas = document.getElementById("btnVolverCitas");
     const formSolicitarCita = document.getElementById("formSolicitarCita");
     const fechaCita = document.getElementById("fechaCita");
+    const especialidadSelect = document.getElementById("especialidad");
+    const precioEspecialidadDiv = document.getElementById("precioEspecialidad");
+    const montoEspecialidadSpan = document.getElementById("montoEspecialidad");
+    const especialidadGroup = especialidadSelect?.closest(".form-group");
 
     if (fechaCita) {
       const today = new Date().toISOString().split("T")[0];
       fechaCita.setAttribute("min", today);
     }
 
-    if (btnVolverCitas)
-      btnVolverCitas.addEventListener("click", () => loadSection("citas"));
+    if (btnVolverCitas) {
+      // Remover listeners anteriores si existen
+      const newBtn = btnVolverCitas.cloneNode(true);
+      btnVolverCitas.parentNode.replaceChild(newBtn, btnVolverCitas);
+      newBtn.addEventListener("click", () => {
+        // Limpiar datos del doctor seleccionado al volver
+        sessionStorage.removeItem("doctorSeleccionadoId");
+        sessionStorage.removeItem("especialidadSeleccionada");
+        loadSection("citas");
+      });
+    }
+
+    // Verificar si hay un doctor seleccionado desde el apartado de doctores
+    const doctorSeleccionadoId = sessionStorage.getItem("doctorSeleccionadoId");
+    const especialidadSeleccionada = sessionStorage.getItem("especialidadSeleccionada");
+    
+    console.log("🔍 Verificando doctor seleccionado:", { doctorSeleccionadoId, especialidadSeleccionada, especialidadSelect: !!especialidadSelect });
+    
+    // Si el elemento no está disponible, intentar de nuevo después de un breve delay
+    if (!especialidadSelect && doctorSeleccionadoId) {
+      console.warn("⚠️ Selector de especialidad no encontrado, reintentando...");
+      setTimeout(() => initSolicitarCitaView(), 100);
+      return;
+    }
+    
+    if (doctorSeleccionadoId && especialidadSeleccionada && especialidadSelect) {
+      try {
+        console.log("📋 Obteniendo información del doctor:", doctorSeleccionadoId);
+        // Obtener información del doctor
+        const response = await fetch(`/api/personal/${doctorSeleccionadoId}`);
+        if (response.ok) {
+          const doctor = await response.json();
+          console.log("✅ Doctor obtenido:", doctor);
+          
+          // Limpiar todas las opciones del select
+          especialidadSelect.innerHTML = "";
+          
+          // Agregar solo la opción de la especialidad del doctor
+          const opcionEspecialidad = document.createElement("option");
+          opcionEspecialidad.value = doctor.especialidad || especialidadSeleccionada;
+          opcionEspecialidad.textContent = doctor.especialidad || especialidadSeleccionada;
+          opcionEspecialidad.selected = true;
+          especialidadSelect.appendChild(opcionEspecialidad);
+          
+          // Deshabilitar el selector de especialidad para que no se pueda cambiar
+          especialidadSelect.disabled = true;
+          especialidadSelect.style.backgroundColor = "#f3f4f6";
+          especialidadSelect.style.cursor = "not-allowed";
+          especialidadSelect.setAttribute("readonly", "readonly");
+          
+          console.log("🔒 Selector deshabilitado. Solo muestra:", doctor.especialidad || especialidadSeleccionada);
+          
+          // Agregar un mensaje informativo si no existe
+          let mensajeDoctor = especialidadGroup?.querySelector(".doctor-info-message");
+          if (!mensajeDoctor && especialidadGroup) {
+            const nombreCompleto = `${doctor.nombres || ""} ${doctor.apellidos || ""}`.trim() || "el doctor seleccionado";
+            const genero = doctor.genero || "masculino";
+            const titulo = genero === "femenino" ? "Dra." : "Dr.";
+            
+            mensajeDoctor = document.createElement("div");
+            mensajeDoctor.className = "doctor-info-message";
+            mensajeDoctor.style.cssText = "margin-top: 0.5rem; padding: 0.75rem; background: #e0f2fe; border-left: 4px solid #0284c7; border-radius: 6px; font-size: 0.9rem; color: #0c4a6e;";
+            mensajeDoctor.innerHTML = `<i class="fa-solid fa-user-doctor" style="margin-right: 0.5rem;"></i>Reservando cita con <strong>${titulo} ${nombreCompleto}</strong> - Especialidad: <strong>${doctor.especialidad || especialidadSeleccionada}</strong>`;
+            especialidadGroup.appendChild(mensajeDoctor);
+          }
+          
+          // Mostrar el precio si existe la función
+          if (precioEspecialidadDiv && montoEspecialidadSpan && window.getPrecioEspecialidad) {
+            const precio = window.getPrecioEspecialidad(doctor.especialidad || especialidadSeleccionada);
+            montoEspecialidadSpan.textContent = `S/ ${precio.toFixed(2)}`;
+            precioEspecialidadDiv.style.display = "block";
+          }
+        } else {
+          console.error("❌ Error en la respuesta del servidor:", response.status);
+        }
+      } catch (error) {
+        console.error("❌ Error al obtener información del doctor:", error);
+        // Si hay error, permitir seleccionar normalmente
+        if (especialidadSelect) {
+          especialidadSelect.value = especialidadSeleccionada || "";
+        }
+      }
+    } else if (especialidadSeleccionada && especialidadSelect && !doctorSeleccionadoId) {
+      // Si solo hay especialidad pero no doctor, pre-seleccionar normalmente
+      especialidadSelect.value = especialidadSeleccionada;
+      sessionStorage.removeItem("especialidadSeleccionada");
+      
+      // Mostrar el precio si existe la función
+      if (precioEspecialidadDiv && montoEspecialidadSpan && window.getPrecioEspecialidad) {
+        const precio = window.getPrecioEspecialidad(especialidadSeleccionada);
+        montoEspecialidadSpan.textContent = `S/ ${precio.toFixed(2)}`;
+        precioEspecialidadDiv.style.display = "block";
+      }
+    }
+
+    // Mostrar precio cuando se selecciona una especialidad (solo si no está deshabilitado)
+    if (especialidadSelect && precioEspecialidadDiv && montoEspecialidadSpan && !especialidadSelect.disabled) {
+      especialidadSelect.addEventListener("change", (e) => {
+        const especialidad = e.target.value;
+        if (especialidad) {
+          if (window.getPrecioEspecialidad) {
+            const precio = window.getPrecioEspecialidad(especialidad);
+            montoEspecialidadSpan.textContent = `S/ ${precio.toFixed(2)}`;
+            precioEspecialidadDiv.style.display = "block";
+          }
+        } else {
+          precioEspecialidadDiv.style.display = "none";
+        }
+      });
+    }
 
     if (formSolicitarCita)
       formSolicitarCita.addEventListener("submit", (e) => {
@@ -389,6 +635,34 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   // 🔹 GESTIÓN DE PERFIL DEL PACIENTE
   // ============================================================
+  
+  // Cargar avatar del usuario al iniciar la aplicación
+  const cargarAvatarUsuario = async () => {
+    const email = sessionStorage.getItem("userEmail");
+    if (!email) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/perfil?email=${email}`);
+      if (!res.ok) return;
+      const data = await res.json();
+
+      const defaultAvatar = "assets2/img/avatar-sofia.jpg";
+      const avatarUrl = data.imagen 
+        ? `http://localhost:5000${data.imagen}` 
+        : defaultAvatar;
+
+      const topbarAvatar = document.getElementById("topbar-avatar");
+      if (topbarAvatar) {
+        topbarAvatar.src = avatarUrl;
+        topbarAvatar.onerror = () => {
+          topbarAvatar.src = defaultAvatar;
+        };
+      }
+    } catch (err) {
+      console.error("Error cargando avatar:", err);
+    }
+  };
+
   const initProfileView = async () => {
     const email = sessionStorage.getItem("userEmail");
     if (!email) {
@@ -428,6 +702,29 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("profile-celular").textContent = data.celular || "-";
       document.getElementById("profile-direccion").textContent = data.direccion || "-";
 
+      // Actualizar imagen de perfil en la vista de perfil
+      const profileAvatar = document.getElementById("profile-avatar");
+      const defaultAvatar = "assets2/img/avatar-sofia.jpg";
+      const avatarUrl = data.imagen 
+        ? `http://localhost:5000${data.imagen}` 
+        : defaultAvatar;
+
+      if (profileAvatar) {
+        profileAvatar.src = avatarUrl;
+        profileAvatar.onerror = () => {
+          profileAvatar.src = defaultAvatar;
+        };
+      }
+
+      // Actualizar avatar en el topbar
+      const topbarAvatar = document.getElementById("topbar-avatar");
+      if (topbarAvatar) {
+        topbarAvatar.src = avatarUrl;
+        topbarAvatar.onerror = () => {
+          topbarAvatar.src = defaultAvatar;
+        };
+      }
+
       // Llenar formulario de edición
       document.getElementById("edit-nombres").value = data.nombres || "";
       document.getElementById("edit-apellidos").value = data.apellidos || "";
@@ -435,6 +732,15 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("edit-genero").value = data.genero || "";
       document.getElementById("edit-direccion").value = data.direccion || "";
       document.getElementById("edit-celular").value = data.celular || "";
+      
+      // Limpiar input de imagen y preview
+      const editImagen = document.getElementById("edit-imagen");
+      const previewImagen = document.getElementById("preview-imagen");
+      if (editImagen) editImagen.value = "";
+      if (previewImagen) {
+        previewImagen.style.display = "none";
+        previewImagen.src = "";
+      }
     } catch (err) {
       console.error("Error cargando perfil:", err);
       alert("Error al cargar el perfil. Por favor, recargue la página.");
@@ -446,6 +752,89 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnCancel = document.getElementById("btn-cancel-edit");
     const formEdit = document.getElementById("profile-edit-form");
     const profileView = document.getElementById("profile-view");
+    const btnChangeAvatar = document.getElementById("btn-change-avatar");
+    const inputImagen = document.getElementById("input-imagen");
+    const editImagen = document.getElementById("edit-imagen");
+    const previewImagen = document.getElementById("preview-imagen");
+
+    // Botón para cambiar avatar desde la cabecera
+    if (btnChangeAvatar && inputImagen) {
+      btnChangeAvatar.addEventListener("click", () => {
+        inputImagen.click();
+      });
+
+      inputImagen.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          // Validar tipo de archivo
+          const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+          if (!allowedTypes.includes(file.type)) {
+            alert("Solo se permiten archivos de imagen (JPEG, PNG, GIF, WEBP)");
+            inputImagen.value = "";
+            return;
+          }
+
+          // Validar tamaño (5MB)
+          if (file.size > 5 * 1024 * 1024) {
+            alert("El archivo es demasiado grande. El tamaño máximo es 5MB");
+            inputImagen.value = "";
+            return;
+          }
+
+          // Abrir el formulario de edición si no está abierto
+          if (profileView.style.display !== "none") {
+            profileView.style.display = "none";
+            formEdit.style.display = "block";
+            if (btnEdit) btnEdit.style.display = "none";
+          }
+
+          // Asignar el archivo al input del formulario usando DataTransfer
+          if (editImagen) {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            editImagen.files = dataTransfer.files;
+            
+            // Disparar evento change para que se muestre el preview
+            editImagen.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        }
+      });
+    }
+
+    // Preview de imagen en el formulario de edición
+    if (editImagen && previewImagen) {
+      editImagen.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          // Validar tipo de archivo
+          const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp"];
+          if (!allowedTypes.includes(file.type)) {
+            alert("Solo se permiten archivos de imagen (JPEG, PNG, GIF, WEBP)");
+            editImagen.value = "";
+            previewImagen.style.display = "none";
+            return;
+          }
+
+          // Validar tamaño (5MB)
+          if (file.size > 5 * 1024 * 1024) {
+            alert("El archivo es demasiado grande. El tamaño máximo es 5MB");
+            editImagen.value = "";
+            previewImagen.style.display = "none";
+            return;
+          }
+
+          // Mostrar preview
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            previewImagen.src = e.target.result;
+            previewImagen.style.display = "block";
+          };
+          reader.readAsDataURL(file);
+        } else {
+          previewImagen.style.display = "none";
+        }
+      });
+    }
 
     if (btnEdit) {
       btnEdit.addEventListener("click", () => {
@@ -475,20 +864,25 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        const datos = {
-          nombres: document.getElementById("edit-nombres").value,
-          apellidos: document.getElementById("edit-apellidos").value,
-          edad: Number(document.getElementById("edit-edad").value),
-          genero: document.getElementById("edit-genero").value,
-          direccion: document.getElementById("edit-direccion").value,
-          celular: document.getElementById("edit-celular").value,
-        };
+        // Crear FormData para enviar datos y archivo
+        const formData = new FormData();
+        formData.append("nombres", document.getElementById("edit-nombres").value);
+        formData.append("apellidos", document.getElementById("edit-apellidos").value);
+        formData.append("edad", Number(document.getElementById("edit-edad").value));
+        formData.append("genero", document.getElementById("edit-genero").value);
+        formData.append("direccion", document.getElementById("edit-direccion").value);
+        formData.append("celular", document.getElementById("edit-celular").value);
+
+        // Agregar imagen si se seleccionó una
+        const imagenFile = editImagen?.files[0];
+        if (imagenFile) {
+          formData.append("imagen", imagenFile);
+        }
 
         try {
           const res = await fetch(`http://localhost:5000/api/perfil?email=${email}`, {
             method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(datos),
+            body: formData, // No establecer Content-Type, el navegador lo hará automáticamente con el boundary
           });
 
           if (!res.ok) {
@@ -496,6 +890,7 @@ document.addEventListener("DOMContentLoaded", () => {
             throw new Error(errorData.message || "Error al actualizar el perfil");
           }
 
+          const result = await res.json();
           alert("Perfil actualizado correctamente");
           profileView.style.display = "block";
           formEdit.style.display = "none";
@@ -514,6 +909,530 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   // 🔹 GESTIÓN DE RESUMEN (OVERVIEW)
   // ============================================================
+  const initPagarCitaView = () => {
+    console.log("Vista de pago de cita inicializada");
+    
+    // Obtener citaId de sessionStorage
+    const citaId = sessionStorage.getItem('ultimaCitaId') || sessionStorage.getItem('citaIdPagar');
+    const email = sessionStorage.getItem('userEmail');
+    
+    if (!citaId) {
+      console.error('No se encontró citaId en sessionStorage');
+      alert('No se encontró información de la cita. Redirigiendo...');
+      loadSection('citas');
+      return;
+    }
+    
+    // Limpiar citaIdPagar si existe
+    if (sessionStorage.getItem('citaIdPagar')) {
+      sessionStorage.removeItem('citaIdPagar');
+    }
+    
+    // Esperar a que el DOM esté listo y luego inicializar
+    setTimeout(() => {
+      inicializarFormularioPago(citaId, email);
+    }, 100);
+  };
+  
+  const inicializarFormularioPago = async (citaId, email) => {
+    console.log('Inicializando formulario de pago:', { citaId, email });
+    
+    try {
+      // Obtener información de la cita
+      const res = await fetch(`http://localhost:5000/api/citas?email=${encodeURIComponent(email)}`);
+      if (!res.ok) throw new Error('Error al cargar cita');
+      const citas = await res.json();
+      const cita = Array.isArray(citas) ? citas.find(c => c._id === citaId) : null;
+      
+      if (!cita) {
+        alert('No se encontró la cita. Redirigiendo...');
+        loadSection('citas');
+        return;
+      }
+      
+      // Función para obtener precio
+      const getPrecioEspecialidad = (especialidad) => {
+        const precios = {
+          "Cardiología": 80.00,
+          "Dermatología": 60.00,
+          "Pediatría": 50.00,
+          "Traumatología": 70.00,
+          "Neurología": 90.00,
+          "Hematología": 65.00,
+          "Inmunología": 75.00,
+          "Bioquímica": 55.00,
+        };
+        return precios[especialidad] || 50.00;
+      };
+      
+      // Llenar campos del formulario
+      const citaIdInput = document.getElementById('citaId');
+      const emailInput = document.getElementById('emailPaciente');
+      const montoInput = document.getElementById('montoPago');
+      
+      if (citaIdInput) citaIdInput.value = citaId;
+      if (emailInput) emailInput.value = email;
+      
+      // Llenar información de la cita
+      const especialidadEl = document.getElementById('especialidadCita');
+      const fechaEl = document.getElementById('fechaCita');
+      const horarioEl = document.getElementById('horarioCita');
+      const montoCitaEl = document.getElementById('montoCita');
+      
+      if (especialidadEl) especialidadEl.textContent = cita.especialidad || '-';
+      
+      if (fechaEl && cita.fechaCita) {
+        const fecha = new Date(cita.fechaCita);
+        fechaEl.textContent = fecha.toLocaleDateString('es-ES', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      }
+      
+      if (horarioEl) horarioEl.textContent = cita.horario || '-';
+      
+      const precio = getPrecioEspecialidad(cita.especialidad);
+      if (montoInput) montoInput.value = precio.toFixed(2);
+      if (montoCitaEl) montoCitaEl.textContent = `S/ ${precio.toFixed(2)}`;
+      
+      // Cargar información del paciente
+      let nombreCompleto = 'Usuario';
+      try {
+        const resPerfil = await fetch(`http://localhost:5000/api/perfil?email=${encodeURIComponent(email)}`);
+        if (resPerfil.ok) {
+          const perfil = await resPerfil.json();
+          nombreCompleto = `${perfil.nombres || ''} ${perfil.apellidos || ''}`.trim() || 'Usuario';
+          const nombreEl = document.getElementById('nombrePaciente');
+          const correoEl = document.getElementById('correoPaciente');
+          if (nombreEl) nombreEl.textContent = nombreCompleto;
+          if (correoEl) correoEl.textContent = email || '-';
+        }
+      } catch (e) {
+        console.warn('Error al cargar perfil:', e);
+      }
+      
+      // Guardar nombre para usar en Yape
+      window.pacienteNombre = nombreCompleto;
+      
+      // Actualizar datos de Yape
+      actualizarDatosYape(cita, precio, email);
+      
+      // Configurar el formulario de pago
+      const formPago = document.getElementById('formPago');
+      if (formPago) {
+        // Remover listener anterior si existe
+        const newFormPago = formPago.cloneNode(true);
+        formPago.parentNode.replaceChild(newFormPago, formPago);
+        
+        // Agregar nuevo listener
+        newFormPago.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          await procesarPago(citaId, email, precio);
+        });
+      }
+      
+      // Configurar eventos de método de pago
+      configurarMetodosPago();
+      
+      // Configurar formateo de campos de tarjeta
+      configurarCamposTarjeta();
+      
+      // Configurar botones
+      const btnVolver = document.getElementById('btnVolverPago');
+      if (btnVolver) {
+        btnVolver.onclick = () => loadSection('pagos');
+      }
+      
+      const btnCancelar = document.getElementById('btnCancelarPago');
+      if (btnCancelar) {
+        btnCancelar.onclick = () => {
+          if (confirm('¿Está seguro que desea cancelar el pago?')) {
+            loadSection('pagos');
+          }
+        };
+      }
+      
+      const btnCerrarModal = document.getElementById('btnCerrarModal');
+      if (btnCerrarModal) {
+        btnCerrarModal.onclick = () => {
+          document.getElementById('modalPago').style.display = 'none';
+          loadSection('pagos');
+        };
+      }
+      
+    } catch (error) {
+      console.error('Error inicializando formulario de pago:', error);
+      alert('Error al cargar información de la cita: ' + error.message);
+      loadSection('citas');
+    }
+  };
+  
+  // Función para actualizar datos de Yape
+  const actualizarDatosYape = (cita, monto, email) => {
+    const yapeNombre = document.getElementById('yapeNombrePaciente');
+    const yapeCorreo = document.getElementById('yapeCorreoPaciente');
+    const yapeFecha = document.getElementById('yapeFechaCita');
+    const yapeHorario = document.getElementById('yapeHorarioCita');
+    const yapeImporte = document.getElementById('yapeImporte');
+    
+    if (yapeNombre) yapeNombre.textContent = window.pacienteNombre || 'Usuario';
+    if (yapeCorreo) yapeCorreo.textContent = email || '-';
+    
+    if (yapeFecha && cita.fechaCita) {
+      const fecha = new Date(cita.fechaCita);
+      yapeFecha.textContent = fecha.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    }
+    
+    if (yapeHorario) yapeHorario.textContent = cita.horario || '-';
+    if (yapeImporte) yapeImporte.textContent = `S/ ${monto.toFixed(2)}`;
+    
+    // Generar QR code para Yape
+    generarQRYape(cita, monto, email);
+  };
+  
+  // Función para generar QR code de Yape
+  const generarQRYape = (cita, monto, email) => {
+    // Datos para el QR (simulando datos de pago Yape)
+    const datosQR = JSON.stringify({
+      tipo: 'yape',
+      monto: monto.toFixed(2),
+      referencia: `CITA-${cita._id}`,
+      paciente: window.pacienteNombre || 'Usuario',
+      fecha: new Date().toISOString()
+    });
+    
+    // Usar API de QR code (qrcode.tec-it.com o similar)
+    const qrContainer = document.getElementById('qrCodeYape');
+    if (qrContainer) {
+      // Limpiar contenido anterior
+      qrContainer.innerHTML = '';
+      
+      // Crear imagen QR usando API pública
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(datosQR)}`;
+      const img = document.createElement('img');
+      img.src = qrUrl;
+      img.alt = 'QR Code Yape';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.borderRadius = '8px';
+      qrContainer.appendChild(img);
+    }
+  };
+  
+  // Función para configurar métodos de pago
+  const configurarMetodosPago = () => {
+    const radios = document.querySelectorAll('input[name="metodo"]');
+    const camposTarjeta = document.getElementById('camposTarjeta');
+    const seccionYape = document.getElementById('seccionYape');
+    
+    radios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const metodo = e.target.value;
+        
+        // Remover clase selected de todas las opciones
+        document.querySelectorAll('.metodo-pago-option').forEach(opt => {
+          opt.classList.remove('selected');
+        });
+        
+        // Agregar clase selected a la opción seleccionada
+        const option = e.target.closest('.metodo-pago-option');
+        if (option) option.classList.add('selected');
+        
+        // Mostrar/ocultar secciones según el método
+        if (metodo === 'tarjeta') {
+          if (camposTarjeta) camposTarjeta.style.display = 'block';
+          if (seccionYape) seccionYape.style.display = 'none';
+        } else if (metodo === 'yape') {
+          if (camposTarjeta) camposTarjeta.style.display = 'none';
+          if (seccionYape) seccionYape.style.display = 'block';
+        } else {
+          if (camposTarjeta) camposTarjeta.style.display = 'none';
+          if (seccionYape) seccionYape.style.display = 'none';
+        }
+      });
+    });
+    
+    // Activar el método por defecto (tarjeta)
+    const tarjetaRadio = document.querySelector('input[name="metodo"][value="tarjeta"]');
+    if (tarjetaRadio && camposTarjeta) {
+      tarjetaRadio.checked = true;
+      camposTarjeta.style.display = 'block';
+      const option = tarjetaRadio.closest('.metodo-pago-option');
+      if (option) option.classList.add('selected');
+    }
+  };
+  
+  // Función para configurar campos de tarjeta
+  const configurarCamposTarjeta = () => {
+    const numeroTarjeta = document.getElementById('numeroTarjeta');
+    const fechaExpiracion = document.getElementById('fechaExpiracion');
+    const cvv = document.getElementById('cvv');
+    
+    // Formatear número de tarjeta (espacios cada 4 dígitos)
+    if (numeroTarjeta) {
+      numeroTarjeta.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\s/g, ''); // Remover espacios
+        value = value.replace(/\D/g, ''); // Solo números
+        value = value.match(/.{1,4}/g)?.join(' ') || value; // Agregar espacios
+        e.target.value = value;
+      });
+      
+      numeroTarjeta.addEventListener('keypress', (e) => {
+        if (!/[0-9]/.test(e.key) && e.key !== 'Backspace') {
+          e.preventDefault();
+        }
+      });
+    }
+    
+    // Formatear fecha de expiración (MM/AA)
+    if (fechaExpiracion) {
+      fechaExpiracion.addEventListener('input', (e) => {
+        let value = e.target.value.replace(/\D/g, ''); // Solo números
+        if (value.length >= 2) {
+          value = value.substring(0, 2) + '/' + value.substring(2, 4);
+        }
+        e.target.value = value;
+      });
+      
+      fechaExpiracion.addEventListener('keypress', (e) => {
+        if (!/[0-9]/.test(e.key) && e.key !== 'Backspace') {
+          e.preventDefault();
+        }
+      });
+    }
+    
+    // Validar CVV (solo números)
+    if (cvv) {
+      cvv.addEventListener('keypress', (e) => {
+        if (!/[0-9]/.test(e.key) && e.key !== 'Backspace') {
+          e.preventDefault();
+        }
+      });
+    }
+  };
+  
+  const procesarPago = async (citaId, email, montoBase) => {
+    const btnConfirmarPago = document.getElementById('btnConfirmarPago');
+    const metodoSeleccionado = document.querySelector('input[name="metodo"]:checked');
+    const montoInput = document.getElementById('montoPago');
+    
+    // Obtener monto del input del formulario
+    const monto = montoInput ? parseFloat(montoInput.value) : montoBase;
+    
+    if (!monto || isNaN(monto) || monto <= 0) {
+      alert('El monto debe ser un número válido mayor a 0');
+      return;
+    }
+    
+    if (!citaId || !email) {
+      alert('Faltan datos requeridos (citaId o email)');
+      return;
+    }
+    
+    if (!metodoSeleccionado) {
+      alert('Por favor seleccione un método de pago');
+      return;
+    }
+    
+    const metodo = metodoSeleccionado.value;
+    
+    // Validar método
+    const metodosValidos = ['tarjeta', 'yape', 'plin', 'efectivo'];
+    if (!metodosValidos.includes(metodo)) {
+      alert('Método de pago inválido');
+      return;
+    }
+    
+    // Validar campos de tarjeta si el método es tarjeta
+    if (metodo === 'tarjeta') {
+      const numeroTarjeta = document.getElementById('numeroTarjeta')?.value.replace(/\s/g, '');
+      const fechaExpiracion = document.getElementById('fechaExpiracion')?.value;
+      const cvv = document.getElementById('cvv')?.value;
+      
+      if (!numeroTarjeta || numeroTarjeta.length < 13 || numeroTarjeta.length > 19) {
+        alert('Por favor ingrese un número de tarjeta válido (13-19 dígitos)');
+        return;
+      }
+      
+      if (!fechaExpiracion || !/^\d{2}\/\d{2}$/.test(fechaExpiracion)) {
+        alert('Por favor ingrese una fecha de expiración válida (MM/AA)');
+        return;
+      }
+      
+      if (!cvv || cvv.length < 3 || cvv.length > 4) {
+        alert('Por favor ingrese un CVV válido (3-4 dígitos)');
+        return;
+      }
+    }
+    
+    // Confirmar
+    const metodoNombre = metodo === 'tarjeta' ? 'Tarjeta de Crédito/Débito' : 
+                        metodo === 'yape' ? 'Yape' : 
+                        metodo === 'plin' ? 'Plin' : 'Efectivo';
+    const confirmar = confirm(`¿Confirmar el pago de S/ ${monto.toFixed(2)} mediante ${metodoNombre}?`);
+    if (!confirmar) return;
+    
+    // Deshabilitar botón
+    if (btnConfirmarPago) {
+      btnConfirmarPago.disabled = true;
+      btnConfirmarPago.innerHTML = '<i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.5rem;"></i>Procesando...';
+    }
+    
+    try {
+      console.log('Enviando pago:', { email, citaId, monto, metodo });
+      
+      const res = await fetch('http://localhost:5000/api/pagos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, citaId, monto, metodo })
+      });
+      
+      const data = await res.json();
+      console.log('Respuesta del servidor:', data);
+      
+      if (!res.ok) {
+        console.error('Error en la respuesta:', data);
+        
+        // Si la cita ya tiene pago, mostrar mensaje más amigable
+        if (data.message && data.message.includes('ya tiene un pago registrado')) {
+          alert('Esta cita ya tiene un pago registrado.\n\n' +
+                (data.pagoExistente 
+                  ? `Detalles del pago:\n- Monto: S/ ${data.pagoExistente.monto}\n- Método: ${data.pagoExistente.metodo}\n- Estado: ${data.pagoExistente.estado}\n\n` 
+                  : '') +
+                'Puedes ver tus pagos en la sección "Pagos".');
+          loadSection('pagos');
+          return;
+        }
+        
+        throw new Error(data.message || 'Error al procesar el pago');
+      }
+      
+      // Mostrar modal de éxito
+      const modalPago = document.getElementById('modalPago');
+      const modalTitulo = document.getElementById('modalTitulo');
+      const modalMensaje = document.getElementById('modalMensaje');
+      
+      if (modalPago) modalPago.style.display = 'flex';
+      if (modalTitulo) modalTitulo.textContent = '¡Pago Exitoso!';
+      if (modalMensaje) {
+        const metodoNombre = metodoSeleccionado.nextElementSibling.querySelector('span').textContent;
+        modalMensaje.innerHTML = `
+          <div style="text-align: left; margin-top: 1rem;">
+            <p style="margin-bottom: 0.75rem;">Su pago ha sido procesado correctamente.</p>
+            <div style="background: #f9fafb; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <strong>Monto:</strong>
+                <span style="color: #059669; font-weight: 700;">S/ ${monto.toFixed(2)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                <strong>Método:</strong>
+                <span>${metodoNombre}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <strong>Estado:</strong>
+                <span style="color: #059669; font-weight: 600;">✓ Pagado</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Limpiar sessionStorage
+      sessionStorage.removeItem('ultimaCitaId');
+      
+      // Cerrar el modal después de mostrar el mensaje
+      setTimeout(() => {
+        if (modalPago) modalPago.style.display = 'none';
+        
+        // Redirigir a la vista de pagos para ver el nuevo pago
+        // Esperar un poco más para asegurar que el backend haya procesado completamente
+        if (typeof loadSection === 'function') {
+          console.log('Redirigiendo a la vista de pagos...');
+          loadSection('pagos');
+          
+          // Forzar la recarga de pagos después de un delay más largo para asegurar que el backend haya guardado
+          // Usar múltiples intentos para asegurar que la tabla se cargue
+          let intentosRecarga = 0;
+          const maxIntentosRecarga = 10;
+          const recargarPagos = () => {
+            intentosRecarga++;
+            const tbody = document.getElementById('pagos-tbody-modern');
+            if (tbody && typeof window.cargarPagosEnTabla === 'function') {
+              console.log(`Recargando tabla de pagos... (intento ${intentosRecarga})`);
+              window.cargarPagosEnTabla();
+              // Verificar después de cargar si hay datos
+              setTimeout(() => {
+                const filas = tbody.querySelectorAll('tr');
+                console.log(`Tabla recargada: ${filas.length} filas encontradas`);
+              }, 1000);
+            } else if (intentosRecarga < maxIntentosRecarga) {
+              setTimeout(recargarPagos, 400);
+            } else {
+              console.warn('No se pudo recargar la tabla de pagos después de varios intentos');
+            }
+          };
+          // Empezar después de un delay más largo para dar tiempo al backend
+          setTimeout(recargarPagos, 800);
+        } else {
+          window.location.href = '/user';
+        }
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error al procesar pago:', error);
+      alert('Error: ' + (error.message || 'Error al procesar el pago') + '\n\nPor favor, verifique la consola para más detalles.');
+      
+      if (btnConfirmarPago) {
+        btnConfirmarPago.disabled = false;
+        btnConfirmarPago.innerHTML = '<i class="fa-solid fa-check" style="margin-right: 0.5rem;"></i>Confirmar Pago';
+      }
+    }
+  };
+
+  const initPagosView = async () => {
+    // Esta función se ejecuta cuando se carga la sección de pagos dinámicamente
+    const email = sessionStorage.getItem("userEmail");
+    if (!email) {
+      const content = document.getElementById("content");
+      if (content) {
+        content.innerHTML = `<p style="color:crimson;padding:2rem;">No se encontró el email del usuario. Por favor, inicie sesión nuevamente.</p>`;
+      }
+      return;
+    }
+    
+    // Esperar a que el DOM se actualice completamente
+    const cargarPagos = () => {
+      const tbody = document.getElementById('pagos-tbody-modern');
+      if (tbody && typeof window.cargarPagosEnTabla === 'function') {
+        window.cargarPagosEnTabla();
+        return true;
+      }
+      return false;
+    };
+    
+    // Intentar cargar inmediatamente
+    if (!cargarPagos()) {
+      // Si no está listo, intentar varias veces con delays progresivos
+      let intentos = 0;
+      const maxIntentos = 10;
+      const intervalo = setInterval(() => {
+        intentos++;
+        if (cargarPagos() || intentos >= maxIntentos) {
+          clearInterval(intervalo);
+          if (intentos >= maxIntentos) {
+            console.warn('No se pudo cargar la tabla de pagos después de varios intentos');
+          }
+        }
+      }, 150);
+    }
+  };
+
   const initOverviewView = async () => {
     const email = sessionStorage.getItem("userEmail");
     if (!email) {
@@ -616,32 +1535,711 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const cargarMedicacion = async () => {
     try {
-      // Cargar la vista de medicación para verificar si hay datos
-      const res = await fetch("views/medicacion.html");
-      if (!res.ok) {
-        document.getElementById("card-medicacion").style.display = "none";
-        return;
-      }
-      const html = await res.text();
-      const tempDiv = document.createElement("div");
-      tempDiv.innerHTML = html;
-      const medItems = tempDiv.querySelectorAll(".med-item");
-      
-      if (medItems.length === 0) {
-        document.getElementById("card-medicacion").style.display = "none";
+      const email = sessionStorage.getItem("userEmail");
+      if (!email) {
+        const cardMedicacion = document.getElementById("card-medicacion");
+        if (cardMedicacion) cardMedicacion.style.display = "none";
         return;
       }
 
-      // Obtener información de la primera medicación
-      const primeraMedicacion = medItems[0];
-      const nombreMedicacion = primeraMedicacion.querySelector(".med-name")?.textContent || "Medicación";
+      // Obtener diagnósticos con recetas del paciente
+      const res = await fetch(`/api/diagnosticos/email?email=${encodeURIComponent(email)}`);
+      if (!res.ok) {
+        const cardMedicacion = document.getElementById("card-medicacion");
+        if (cardMedicacion) cardMedicacion.style.display = "none";
+        return;
+      }
+      const diagnosticos = await res.json();
       
-      document.getElementById("card-medicacion").style.display = "block";
-      document.getElementById("medicacion-tipo").textContent = nombreMedicacion;
-      document.getElementById("medicacion-detalle").textContent = `${medItems.length} ${medItems.length === 1 ? "medicamento activo" : "medicamentos activos"}`;
+      // Filtrar solo diagnósticos con recetas activas
+      const recetasActivas = [];
+      diagnosticos.forEach(diagnostico => {
+        if (diagnostico.receta && diagnostico.receta.tieneReceta && diagnostico.receta.medicamentos.length > 0) {
+          diagnostico.receta.medicamentos.forEach(med => {
+            recetasActivas.push({
+              ...med,
+              diagnosticoId: diagnostico._id,
+              fechaDiagnostico: diagnostico.fechaDiagnostico,
+              medico: diagnostico.idMedico ? `${diagnostico.idMedico.nombres} ${diagnostico.idMedico.apellidos}` : "Médico"
+            });
+          });
+        }
+      });
+      
+      const cardMedicacion = document.getElementById("card-medicacion");
+      if (!cardMedicacion) return;
+
+      if (recetasActivas.length === 0) {
+        cardMedicacion.style.display = "none";
+        return;
+      }
+
+      // Mostrar información en el overview
+      cardMedicacion.style.display = "block";
+      const medicacionTipo = document.getElementById("medicacion-tipo");
+      const medicacionDetalle = document.getElementById("medicacion-detalle");
+      if (medicacionTipo) medicacionTipo.textContent = recetasActivas[0].nombre;
+      if (medicacionDetalle) medicacionDetalle.textContent = `${recetasActivas.length} ${recetasActivas.length === 1 ? "medicamento activo" : "medicamentos activos"}`;
     } catch (err) {
       console.error("Error cargando medicación:", err);
-      document.getElementById("card-medicacion").style.display = "none";
+      const cardMedicacion = document.getElementById("card-medicacion");
+      if (cardMedicacion) cardMedicacion.style.display = "none";
+    }
+  };
+
+  // ============================================================
+  // 🔹 VISTA DE MEDICACIÓN
+  // ============================================================
+  const initMedicacionView = async () => {
+    const email = sessionStorage.getItem("userEmail");
+    if (!email) {
+      console.error("No se encontró el email del usuario");
+      mostrarEstadoVacioMedicacion();
+      return;
+    }
+
+    // Mostrar estado de carga
+    mostrarEstadoCargaMedicacion();
+
+    try {
+      // Obtener diagnósticos con recetas
+      const res = await fetch(`/api/diagnosticos/email?email=${encodeURIComponent(email)}`);
+      if (!res.ok) throw new Error("Error al obtener diagnósticos");
+      
+      const diagnosticos = await res.json();
+      
+      // Procesar recetas
+      const todasLasRecetas = [];
+      diagnosticos.forEach(diagnostico => {
+        if (diagnostico.receta && diagnostico.receta.tieneReceta && diagnostico.receta.medicamentos.length > 0) {
+          diagnostico.receta.medicamentos.forEach((med, index) => {
+            todasLasRecetas.push({
+              ...med,
+              id: `${diagnostico._id}-${index}`,
+              diagnosticoId: diagnostico._id,
+              fechaDiagnostico: diagnostico.fechaDiagnostico,
+              medico: diagnostico.idMedico ? `${diagnostico.idMedico.nombres} ${diagnostico.idMedico.apellidos}` : "Médico",
+              diagnostico: diagnostico.diagnostico
+            });
+          });
+        }
+      });
+
+      if (todasLasRecetas.length === 0) {
+        mostrarEstadoVacioMedicacion();
+        return;
+      }
+
+      // Renderizar medicamentos
+      renderizarMedicamentos(todasLasRecetas);
+      inicializarRecordatoriosMedicacion();
+      
+    } catch (err) {
+      console.error("Error cargando medicación:", err);
+      mostrarEstadoVacioMedicacion();
+    }
+  };
+
+  const mostrarEstadoCargaMedicacion = () => {
+    const loadingEl = document.getElementById("loading-medicacion");
+    const emptyEl = document.getElementById("empty-medicacion");
+    const contentEl = document.getElementById("medicacion-content");
+    if (loadingEl) loadingEl.style.display = "block";
+    if (emptyEl) emptyEl.style.display = "none";
+    if (contentEl) contentEl.style.display = "none";
+  };
+
+  const mostrarEstadoVacioMedicacion = () => {
+    const loadingEl = document.getElementById("loading-medicacion");
+    const emptyEl = document.getElementById("empty-medicacion");
+    const contentEl = document.getElementById("medicacion-content");
+    if (loadingEl) loadingEl.style.display = "none";
+    if (emptyEl) emptyEl.style.display = "block";
+    if (contentEl) contentEl.style.display = "none";
+  };
+
+  const renderizarMedicamentos = (recetas) => {
+    const loadingEl = document.getElementById("loading-medicacion");
+    const emptyEl = document.getElementById("empty-medicacion");
+    const contentEl = document.getElementById("medicacion-content");
+    if (loadingEl) loadingEl.style.display = "none";
+    if (emptyEl) emptyEl.style.display = "none";
+    if (contentEl) contentEl.style.display = "block";
+
+    const medList = document.getElementById("med-list");
+    if (!medList) return;
+    
+    medList.innerHTML = "";
+
+    recetas.forEach(receta => {
+      const recordatorio = obtenerRecordatorioMedicacion(receta.id);
+      const tieneRecordatorio = recordatorio && recordatorio.activo;
+      
+      const li = document.createElement("li");
+      li.className = "med-item";
+      li.dataset.medicamentoId = receta.id;
+      
+      li.innerHTML = `
+        <div class="med-icon"><i class="fa-solid fa-capsules"></i></div>
+        <div class="med-info">
+          <div class="med-name">${receta.nombre}</div>
+          <div class="med-details">
+            ${receta.dosis} — ${receta.frecuencia} — ${receta.duracion}
+            ${receta.instrucciones ? `<br><small class="med-instructions">${receta.instrucciones}</small>` : ''}
+          </div>
+          <div class="med-meta">
+            <small class="muted">Prescrito por: ${receta.medico} · ${new Date(receta.fechaDiagnostico).toLocaleDateString('es-ES')}</small>
+          </div>
+        </div>
+        <div class="med-actions">
+          ${tieneRecordatorio 
+            ? `<span class="badge badge-success"><i class="fa-solid fa-bell"></i> Activo ${recordatorio.hora}</span>`
+            : `<button class="btn-recordatorio" data-medicamento-id="${receta.id}">
+                <i class="fa-solid fa-bell"></i> Recordatorio
+              </button>`
+          }
+          ${tieneRecordatorio 
+            ? `<button class="btn-editar-recordatorio" data-medicamento-id="${receta.id}" title="Editar recordatorio">
+                <i class="fa-solid fa-edit"></i>
+              </button>`
+            : ''
+          }
+        </div>
+      `;
+      
+      medList.appendChild(li);
+    });
+
+    // Guardar recetas en variable global para acceso en modal
+    window.recetasMedicacion = recetas;
+
+    // Agregar event listeners para recordatorios
+    document.querySelectorAll(".btn-recordatorio").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const medicamentoId = e.currentTarget.dataset.medicamentoId;
+        abrirModalRecordatorioMedicacion(medicamentoId);
+      });
+    });
+
+    document.querySelectorAll(".btn-editar-recordatorio").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const medicamentoId = e.currentTarget.dataset.medicamentoId;
+        abrirModalRecordatorioMedicacion(medicamentoId);
+      });
+    });
+  };
+
+  // ============================================================
+  // 🔹 SISTEMA DE RECORDATORIOS
+  // ============================================================
+  const obtenerRecordatorioMedicacion = (medicamentoId) => {
+    const recordatorios = JSON.parse(localStorage.getItem("recordatorios") || "{}");
+    return recordatorios[medicamentoId] || null;
+  };
+
+  const guardarRecordatorioMedicacion = (medicamentoId, recordatorio) => {
+    const recordatorios = JSON.parse(localStorage.getItem("recordatorios") || "{}");
+    recordatorios[medicamentoId] = recordatorio;
+    localStorage.setItem("recordatorios", JSON.stringify(recordatorios));
+  };
+
+  const eliminarRecordatorioMedicacion = (medicamentoId) => {
+    const recordatorios = JSON.parse(localStorage.getItem("recordatorios") || "{}");
+    delete recordatorios[medicamentoId];
+    localStorage.setItem("recordatorios", JSON.stringify(recordatorios));
+  };
+
+  const abrirModalRecordatorioMedicacion = (medicamentoId) => {
+    const recetas = window.recetasMedicacion || [];
+    const receta = recetas.find(r => r.id === medicamentoId);
+    if (!receta) return;
+
+    const recordatorio = obtenerRecordatorioMedicacion(medicamentoId);
+    
+    const medicamentoIdInput = document.getElementById("recordatorio-medicamento-id");
+    const medicamentoNombreInput = document.getElementById("recordatorio-medicamento-nombre");
+    const horaInput = document.getElementById("recordatorio-hora");
+    const activoInput = document.getElementById("recordatorio-activo");
+
+    if (medicamentoIdInput) medicamentoIdInput.value = medicamentoId;
+    if (medicamentoNombreInput) medicamentoNombreInput.value = receta.nombre;
+    if (horaInput) horaInput.value = recordatorio ? recordatorio.hora : "09:00";
+    if (activoInput) activoInput.checked = recordatorio ? recordatorio.activo : false;
+
+    const modal = document.getElementById("modal-recordatorio");
+    if (modal) modal.classList.remove("hidden");
+  };
+
+  const cerrarModalRecordatorioMedicacion = () => {
+    const modal = document.getElementById("modal-recordatorio");
+    if (modal) modal.classList.add("hidden");
+    const form = document.getElementById("form-recordatorio");
+    if (form) form.reset();
+  };
+
+  const inicializarRecordatoriosMedicacion = () => {
+    // Event listeners del modal
+    const modal = document.getElementById("modal-recordatorio");
+    const formRecordatorio = document.getElementById("form-recordatorio");
+    const btnClose = document.getElementById("btn-close-recordatorio");
+    const btnCancelar = document.getElementById("btn-cancelar-recordatorio");
+
+    if (btnClose) {
+      btnClose.addEventListener("click", cerrarModalRecordatorioMedicacion);
+    }
+
+    if (btnCancelar) {
+      btnCancelar.addEventListener("click", cerrarModalRecordatorioMedicacion);
+    }
+
+    if (modal) {
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          cerrarModalRecordatorioMedicacion();
+        }
+      });
+    }
+
+    if (formRecordatorio) {
+      formRecordatorio.addEventListener("submit", (e) => {
+        e.preventDefault();
+        
+        const medicamentoIdInput = document.getElementById("recordatorio-medicamento-id");
+        const horaInput = document.getElementById("recordatorio-hora");
+        const activoInput = document.getElementById("recordatorio-activo");
+
+        if (!medicamentoIdInput || !horaInput || !activoInput) return;
+
+        const medicamentoId = medicamentoIdInput.value;
+        const hora = horaInput.value;
+        const activo = activoInput.checked;
+
+        if (activo) {
+          guardarRecordatorioMedicacion(medicamentoId, {
+            hora,
+            activo: true,
+            fechaCreacion: new Date().toISOString()
+          });
+          
+          // Configurar notificación
+          configurarNotificacionMedicacion(medicamentoId, hora);
+        } else {
+          eliminarRecordatorioMedicacion(medicamentoId);
+        }
+
+        cerrarModalRecordatorioMedicacion();
+        initMedicacionView(); // Recargar vista
+      });
+    }
+
+    // Botón configurar recordatorios (vista general)
+    const btnConfigurar = document.getElementById("btn-configurar-recordatorios");
+    if (btnConfigurar) {
+      btnConfigurar.addEventListener("click", () => {
+        alert("Selecciona un medicamento individual para configurar su recordatorio.");
+      });
+    }
+
+    // Los recordatorios ya se verifican globalmente, no es necesario iniciar otro intervalo aquí
+  };
+
+  const configurarNotificacionMedicacion = (medicamentoId, hora) => {
+    // Solicitar permiso para notificaciones
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  };
+
+  const verificarRecordatoriosMedicacion = () => {
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+
+    const recordatorios = JSON.parse(localStorage.getItem("recordatorios") || "{}");
+    const ahora = new Date();
+    const horaActual = ahora.getHours().toString().padStart(2, "0") + ":" + ahora.getMinutes().toString().padStart(2, "0");
+
+    Object.keys(recordatorios).forEach(medicamentoId => {
+      const recordatorio = recordatorios[medicamentoId];
+      if (!recordatorio.activo) return;
+
+      const [hora, minutos] = recordatorio.hora.split(":");
+      const horaRecordatorio = hora.padStart(2, "0") + ":" + minutos.padStart(2, "0");
+
+      // Verificar si es la hora del recordatorio (con margen de 1 minuto)
+      if (horaRecordatorio === horaActual) {
+        // Verificar si ya se mostró hoy
+        const ultimaNotificacion = recordatorio.ultimaNotificacion;
+        const hoy = ahora.toDateString();
+
+        if (!ultimaNotificacion || new Date(ultimaNotificacion).toDateString() !== hoy) {
+          mostrarNotificacionMedicacion(medicamentoId, recordatorio);
+          
+          // Actualizar última notificación
+          recordatorio.ultimaNotificacion = ahora.toISOString();
+          guardarRecordatorioMedicacion(medicamentoId, recordatorio);
+        }
+      }
+    });
+  };
+
+  const mostrarNotificacionMedicacion = async (medicamentoId, recordatorio) => {
+    // Obtener nombre del medicamento desde el DOM
+    const medItem = document.querySelector(`[data-medicamento-id="${medicamentoId}"]`);
+    const nombreMedicamento = medItem 
+      ? medItem.querySelector(".med-name")?.textContent 
+      : "Medicamento";
+
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Recordatorio de Medicación", {
+        body: `Es hora de tomar: ${nombreMedicamento}`,
+        icon: "/assets2/img/logo.jpg",
+        tag: `medicacion-${medicamentoId}`,
+        requireInteraction: false
+      });
+    }
+
+    // Mostrar también una notificación en la página si está abierta
+    mostrarNotificacionEnPaginaMedicacion(nombreMedicamento);
+  };
+
+  const mostrarNotificacionEnPaginaMedicacion = (nombreMedicamento) => {
+    // Crear elemento de notificación temporal
+    const notification = document.createElement("div");
+    notification.className = "notification-toast";
+    notification.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #10b981;
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 10000;
+      opacity: 0;
+      transform: translateX(100%);
+      transition: all 0.3s ease;
+      max-width: 300px;
+    `;
+    notification.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <i class="fa-solid fa-bell" style="font-size: 1.25rem;"></i>
+        <div>
+          <strong style="display: block; margin-bottom: 0.25rem;">Recordatorio de Medicación</strong>
+          <p style="margin: 0; font-size: 0.9rem;">Es hora de tomar: ${nombreMedicamento}</p>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(notification);
+
+    // Animación de entrada
+    setTimeout(() => {
+      notification.style.opacity = "1";
+      notification.style.transform = "translateX(0)";
+    }, 10);
+
+    // Remover después de 5 segundos
+    setTimeout(() => {
+      notification.style.opacity = "0";
+      notification.style.transform = "translateX(100%)";
+      setTimeout(() => notification.remove(), 300);
+    }, 5000);
+  };
+
+  // ============================================================
+  // 🔹 INICIALIZACIÓN DE RECORDATORIOS GLOBAL
+  // ============================================================
+  const inicializarRecordatoriosGlobal = () => {
+    // Inicializar verificación de recordatorios
+    verificarRecordatoriosMedicacion();
+    // Verificar cada minuto
+    setInterval(verificarRecordatoriosMedicacion, 60000);
+  };
+
+  // ============================================================
+  // 🔹 VISTA DE DOCTORES
+  // ============================================================
+  const initDoctoresView = async () => {
+    const doctoresContainer = document.getElementById("doctoresContainer");
+    const noDoctoresMessage = document.getElementById("noDoctoresMessage");
+    
+    if (!doctoresContainer) return;
+
+    try {
+      // Mostrar mensaje de carga
+      doctoresContainer.innerHTML = `
+        <div class="loading-message" style="grid-column: 1 / -1; text-align: center; padding: 2rem;">
+          <p>Cargando doctores...</p>
+        </div>
+      `;
+      noDoctoresMessage.classList.add("hidden");
+
+      // Obtener todos los doctores del backend
+      const response = await fetch("/api/personal");
+      if (!response.ok) {
+        throw new Error("Error al cargar los doctores");
+      }
+
+      const personal = await response.json();
+      
+      // Filtrar solo los médicos activos
+      const doctores = personal.filter(
+        (persona) => persona.cargo === "medico" && persona.estado === "activo"
+      );
+
+      if (doctores.length === 0) {
+        doctoresContainer.innerHTML = "";
+        noDoctoresMessage.classList.remove("hidden");
+        return;
+      }
+
+      // Renderizar doctores
+      doctoresContainer.innerHTML = doctores
+        .map((doctor) => {
+          const nombreCompleto = `${doctor.nombres} ${doctor.apellidos}`;
+          const genero = doctor.genero || "masculino";
+          const titulo = genero === "femenino" ? "Dra." : "Dr.";
+          const especialidad = doctor.especialidad || "Medicina General";
+          
+          // Imagen por defecto o del doctor si existe
+          let imagenDoctor;
+          if (doctor.imagen) {
+            // Si la imagen ya incluye /uploads, usarla tal cual; si no, construir la ruta completa
+            imagenDoctor = doctor.imagen.startsWith('/uploads') 
+              ? doctor.imagen 
+              : `/uploads/${doctor.imagen}`;
+          } else {
+            imagenDoctor = doctor.genero === "femenino"
+              ? "assets2/img/doctores/dra-ana.jpg"
+              : "assets2/img/doctores/dr-luis.jpg";
+          }
+
+          return `
+            <div class="card doctor">
+              <img src="${imagenDoctor}" alt="${titulo} ${nombreCompleto}" class="doc-avatar" 
+                   onerror="this.src='${doctor.genero === 'femenino' ? 'assets2/img/doctores/dra-ana.jpg' : 'assets2/img/doctores/dr-luis.jpg'}'" />
+              <div class="doc-info">
+                <div class="doc-name">${titulo} ${nombreCompleto}</div>
+                <div class="doc-specialty">${especialidad}</div>
+                <div class="doc-actions">
+                  <button class="chip small" onclick="verPerfilDoctor('${doctor._id}')">Ver perfil</button>
+                  <button class="chip secondary small" onclick="agendarCitaConDoctor('${doctor._id}', '${especialidad}')">Agendar cita</button>
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+      noDoctoresMessage.classList.add("hidden");
+    } catch (error) {
+      console.error("Error al cargar doctores:", error);
+      doctoresContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: #dc2626;">
+          <p>Error al cargar los doctores. Por favor, intenta de nuevo más tarde.</p>
+        </div>
+      `;
+      noDoctoresMessage.classList.add("hidden");
+    }
+  };
+
+  // Función para ver perfil del doctor
+  window.verPerfilDoctor = (doctorId) => {
+    sessionStorage.setItem("currentDoctorId", doctorId);
+    loadSection("perfil-doctor");
+  };
+
+  // Función para agendar cita con un doctor específico
+  window.agendarCitaConDoctor = (doctorId, especialidad) => {
+    // Guardar el ID del doctor y su especialidad en sessionStorage
+    sessionStorage.setItem("doctorSeleccionadoId", doctorId);
+    sessionStorage.setItem("especialidadSeleccionada", especialidad);
+    // Cargar la vista de solicitar cita
+    loadSection("solicitar-cita");
+  };
+
+  // ============================================================
+  // 🔹 VISTA DE PERFIL DEL DOCTOR
+  // ============================================================
+  const initPerfilDoctorView = async () => {
+    const doctorId = sessionStorage.getItem("currentDoctorId");
+    
+    if (!doctorId) {
+      const content = document.getElementById("content");
+      if (content) {
+        content.innerHTML = `<p style="color:crimson;padding:2rem;">No se ha seleccionado ningún doctor.</p>`;
+      }
+      return;
+    }
+
+    try {
+      // Obtener información del doctor
+      const response = await fetch(`/api/personal/${doctorId}`);
+      if (!response.ok) {
+        throw new Error("Error al cargar el perfil del doctor");
+      }
+
+      const doctor = await response.json();
+
+      // Verificar que es un médico
+      if (doctor.cargo !== "medico") {
+        throw new Error("Este perfil no es de un médico");
+      }
+
+      // Configurar botón de volver
+      const btnVolverDoctores = document.getElementById("btnVolverDoctores");
+      if (btnVolverDoctores) {
+        // Remover listeners anteriores si existen
+        const newBtn = btnVolverDoctores.cloneNode(true);
+        btnVolverDoctores.parentNode.replaceChild(newBtn, btnVolverDoctores);
+        
+        newBtn.addEventListener("click", () => {
+          sessionStorage.removeItem("currentDoctorId");
+          loadSection("doctores");
+        });
+      }
+
+      // Configurar imagen
+      const doctorAvatar = document.getElementById("doctor-profile-avatar");
+      const nombreCompleto = `${doctor.nombres} ${doctor.apellidos}`;
+      const genero = doctor.genero || "masculino";
+      const titulo = genero === "femenino" ? "Dra." : "Dr.";
+      
+      if (doctorAvatar) {
+        if (doctor.imagen) {
+          // Si la imagen ya incluye /uploads, usarla tal cual; si no, construir la ruta completa
+          doctorAvatar.src = doctor.imagen.startsWith('/uploads') 
+            ? doctor.imagen 
+            : `/uploads/${doctor.imagen}`;
+        } else {
+          doctorAvatar.src = genero === "femenino" 
+            ? "assets2/img/doctores/dra-ana.jpg" 
+            : "assets2/img/doctores/dr-luis.jpg";
+        }
+        doctorAvatar.alt = `${titulo} ${nombreCompleto}`;
+      }
+
+      // Configurar nombre y especialidad
+      const doctorName = document.getElementById("doctor-profile-name");
+      if (doctorName) {
+        doctorName.textContent = `${titulo} ${nombreCompleto}`;
+      }
+
+      const doctorSpecialty = document.getElementById("doctor-profile-specialty");
+      if (doctorSpecialty) {
+        doctorSpecialty.textContent = doctor.especialidad || "Medicina General";
+      }
+
+      // Configurar estado
+      const doctorStatus = document.getElementById("doctor-profile-status");
+      if (doctorStatus) {
+        const estado = doctor.estado || "activo";
+        doctorStatus.textContent = estado === "activo" ? "Disponible" : 
+                                   estado === "vacaciones" ? "En vacaciones" : "No disponible";
+        doctorStatus.className = `doctor-status-badge ${estado}`;
+      }
+
+      // Configurar información personal
+      const doctorEdad = document.getElementById("doctor-profile-edad");
+      if (doctorEdad) {
+        doctorEdad.textContent = doctor.edad ? `${doctor.edad} años` : "-";
+      }
+
+      const doctorGenero = document.getElementById("doctor-profile-genero");
+      if (doctorGenero) {
+        const generoText = genero === "femenino" ? "Femenino" : 
+                          genero === "masculino" ? "Masculino" : 
+                          genero === "otro" ? "Otro" : "No especificado";
+        doctorGenero.textContent = generoText;
+      }
+
+      // Configurar información de contacto
+      const doctorEmail = document.getElementById("doctor-profile-email");
+      if (doctorEmail) {
+        doctorEmail.textContent = doctor.email || "-";
+      }
+
+      const doctorCelular = document.getElementById("doctor-profile-celular");
+      if (doctorCelular) {
+        doctorCelular.textContent = doctor.celular || "-";
+      }
+
+      const doctorDireccion = document.getElementById("doctor-profile-direccion");
+      if (doctorDireccion) {
+        doctorDireccion.textContent = doctor.direccion || "-";
+      }
+
+      // Configurar horarios de disponibilidad
+      const doctorHorarios = document.getElementById("doctor-profile-horarios");
+      if (doctorHorarios) {
+        if (doctor.horariosDisponibilidad && doctor.horariosDisponibilidad.length > 0) {
+          const diasSemana = {
+            "lunes": "Lunes",
+            "martes": "Martes",
+            "miercoles": "Miércoles",
+            "jueves": "Jueves",
+            "viernes": "Viernes",
+            "sabado": "Sábado",
+            "domingo": "Domingo"
+          };
+
+          const horariosDisponibles = doctor.horariosDisponibilidad
+            .filter(horario => horario.disponible)
+            .map(horario => {
+              const dia = diasSemana[horario.diaSemana] || horario.diaSemana;
+              return `
+                <div class="horario-item">
+                  <span class="horario-dia">${dia}</span>
+                  <span class="horario-hora">${horario.horaInicio} - ${horario.horaFin}</span>
+                </div>
+              `;
+            })
+            .join("");
+
+          doctorHorarios.innerHTML = horariosDisponibles || "<p class='muted'>No hay horarios de disponibilidad registrados.</p>";
+        } else {
+          doctorHorarios.innerHTML = "<p class='muted'>No hay horarios de disponibilidad registrados.</p>";
+        }
+      }
+
+      // Configurar botón de agendar cita
+      const btnAgendarCitaDoctor = document.getElementById("btnAgendarCitaDoctor");
+      if (btnAgendarCitaDoctor) {
+        // Remover listeners anteriores si existen
+        const newBtn = btnAgendarCitaDoctor.cloneNode(true);
+        btnAgendarCitaDoctor.parentNode.replaceChild(newBtn, btnAgendarCitaDoctor);
+        
+        newBtn.addEventListener("click", () => {
+          // Guardar el ID del doctor y su especialidad para el formulario
+          sessionStorage.setItem("doctorSeleccionadoId", doctorId);
+          sessionStorage.setItem("especialidadSeleccionada", doctor.especialidad || "Medicina General");
+          sessionStorage.removeItem("currentDoctorId");
+          loadSection("solicitar-cita");
+        });
+      }
+
+    } catch (error) {
+      console.error("Error al cargar perfil del doctor:", error);
+      const content = document.getElementById("content");
+      if (content) {
+        content.innerHTML = `
+          <div style="padding: 2rem; text-align: center;">
+            <p style="color: #dc2626; margin-bottom: 1rem;">Error al cargar el perfil del doctor: ${error.message}</p>
+            <button class="btn btn-primary" id="btnVolverError">
+              <i class="fa-solid fa-arrow-left"></i> Volver a Doctores
+            </button>
+          </div>
+        `;
+        
+        // Configurar botón de volver en caso de error
+        const btnVolverError = document.getElementById("btnVolverError");
+        if (btnVolverError) {
+          btnVolverError.addEventListener("click", () => {
+            sessionStorage.removeItem("currentDoctorId");
+            loadSection("doctores");
+          });
+        }
+      }
     }
   };
 
@@ -649,6 +2247,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // 🔹 CARGA INICIAL
   // ============================================================
   loadSection("overview");
+  cargarAvatarUsuario(); // Cargar avatar del usuario al iniciar
+  inicializarRecordatoriosGlobal(); // Inicializar sistema de recordatorios
   if (isMobile()) sidebar.classList.remove("open");
   else sidebar.classList.remove("collapsed");
 });

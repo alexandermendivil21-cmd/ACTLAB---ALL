@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="../Assets/base.css" />
   <link rel="stylesheet" href="../Assets/layout.css" />
   <link rel="stylesheet" href="../Assets/components.css" />
+  <link rel="stylesheet" href="../Assets/overview.css" />
 </head>
 <body>
   <div class="app">
@@ -18,31 +19,111 @@
         <span class="brand-text">SWALCACT</span>
       </div>
       <nav class="sidebar-nav">
-        <a href="/admin" class="nav-item" data-tooltip="Inicio"><i class="fa-solid fa-house nav-icon"></i><span class="nav-text">Inicio</span></a>
-        <a href="/admin/pacientes" class="nav-item" data-tooltip="Pacientes"><i class="fa-solid fa-user-injured nav-icon"></i><span class="nav-text">Pacientes</span></a>
-        <a href="/admin/citas" class="nav-item" data-tooltip="Citas"><i class="fa-solid fa-calendar-days nav-icon"></i><span class="nav-text">Citas</span></a>
-        <a href="/admin/resultados" class="nav-item" data-tooltip="Resultados"><i class="fa-solid fa-vial nav-icon"></i><span class="nav-text">Resultados</span></a>
-        <a href="/admin/pagos" class="nav-item active" data-tooltip="Pagos"><i class="fa-solid fa-coins nav-icon"></i><span class="nav-text">Pagos</span></a>
+        <a href="/admin" class="nav-item" data-tooltip="Inicio">
+          <i class="fa-solid fa-house nav-icon"></i>
+          <span class="nav-text">Inicio</span>
+        </a>
+        <a href="/admin/pacientes" class="nav-item" data-tooltip="Pacientes">
+          <i class="fa-solid fa-user-injured nav-icon"></i>
+          <span class="nav-text">Pacientes</span>
+        </a>
+        <a href="/admin/personal" class="nav-item" data-tooltip="Personal">
+          <i class="fa-solid fa-user-tie nav-icon"></i>
+          <span class="nav-text">Personal</span>
+        </a>
+        <a href="/admin/citas" class="nav-item" data-tooltip="Citas">
+          <i class="fa-solid fa-calendar-days nav-icon"></i>
+          <span class="nav-text">Citas</span>
+        </a>
+        <a href="/admin/resultados" class="nav-item" data-tooltip="Resultados">
+          <i class="fa-solid fa-vial nav-icon"></i>
+          <span class="nav-text">Resultados</span>
+        </a>
+        <a href="/admin/diagnosticos" class="nav-item" data-tooltip="Diagnósticos">
+          <i class="fa-solid fa-file-medical nav-icon"></i>
+          <span class="nav-text">Diagnósticos</span>
+        </a>
+        <a href="/admin/pagos" class="nav-item active" data-tooltip="Pagos">
+          <i class="fa-solid fa-coins nav-icon"></i>
+          <span class="nav-text">Pagos</span>
+        </a>
+        <a href="/admin/reportes" class="nav-item" data-tooltip="Reportes">
+          <i class="fa-solid fa-chart-line nav-icon"></i>
+          <span class="nav-text">Reportes</span>
+        </a>
+
+        <a href="/admin/perfil" class="nav-item" data-tooltip="Mi Perfil">
+          <i class="fa-solid fa-user nav-icon"></i>
+          <span class="nav-text">Mi Perfil</span>
+        </a>
       </nav>
       <div class="sidebar-footer">
-        <a href="/login" class="nav-item" data-tooltip="Salir"><i class="fa-solid fa-right-from-bracket nav-icon"></i><span class="nav-text">Salir</span></a>
+        <a href="/login" class="nav-item" data-tooltip="Salir">
+          <i class="fa-solid fa-right-from-bracket nav-icon"></i>
+          <span class="nav-text">Salir</span>
+        </a>
       </div>
     </aside>
     <main class="main">
       <header class="topbar">
-        <div class="left"><button class="btn-icon" id="sidebarToggle" aria-label="Abrir menú"><i class="fa-solid fa-bars"></i></button><h1>Pagos de Pacientes</h1></div>
+        <div class="left">
+          <button class="btn-icon" id="sidebarToggle" aria-label="Abrir menú">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+        </div>
+        <div class="right">
+          <img src="../assets2/img/avatar-admin.jpg" alt="Admin" class="avatar small-avatar" />
+        </div>
       </header>
       <section class="overview">
+        <div class="overview-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem;">
+          <div>
+            <h2>Pagos Recibidos</h2>
+            <p class="section-subtitle">Historial de todos los pagos realizados por los pacientes</p>
+          </div>
+          <button id="btnRefreshPagos" class="cta-button" style="background: var(--muted); padding: 0.6rem 1rem;">
+            <i class="fa-solid fa-rotate"></i> Actualizar
+          </button>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+          <div class="card">
+            <div class="stat-item">
+              <div class="stat-icon" style="background: #3b82f6; color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 0.5rem;">
+                <i class="fa-solid fa-coins"></i>
+              </div>
+              <div class="stat-value" id="totalPagos">-</div>
+              <div class="stat-label">Total Pagos</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="stat-item">
+              <div class="stat-icon" style="background: #059669; color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 0.5rem;">
+                <i class="fa-solid fa-dollar-sign"></i>
+              </div>
+              <div class="stat-value" id="totalMonto">-</div>
+              <div class="stat-label">Total Recaudado</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla de pagos -->
         <div class="card">
-          <div class="table-wrapper">
-            <table class="user-table">
+          <div style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb;">
+            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #111827;">Lista de Pagos</h3>
+          </div>
+          <div class="table-wrapper" style="overflow-x: auto;">
+            <table class="user-table" style="width: 100%; border-collapse: collapse;">
               <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Paciente</th>
-                  <th>Monto</th>
-                  <th>Método</th>
-                  <th>Cita</th>
+                <tr style="background: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                  <th style="padding: 1rem; text-align: left; font-weight: 600; color: #374151; white-space: nowrap;">Fecha y Hora</th>
+                  <th style="padding: 1rem; text-align: left; font-weight: 600; color: #374151;">Paciente</th>
+                  <th style="padding: 1rem; text-align: left; font-weight: 600; color: #374151;">Especialidad</th>
+                  <th style="padding: 1rem; text-align: left; font-weight: 600; color: #374151;">Monto</th>
+                  <th style="padding: 1rem; text-align: left; font-weight: 600; color: #374151;">Método</th>
+                  <th style="padding: 1rem; text-align: left; font-weight: 600; color: #374151;">Estado</th>
+                  <th style="padding: 1rem; text-align: center; font-weight: 600; color: #374151;">Acciones</th>
                 </tr>
               </thead>
               <tbody id="pagos-admin-tbody"></tbody>
@@ -52,28 +133,180 @@
       </section>
     </main>
   </div>
+
+  <script src="../public/admin-layout.js" defer></script>
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
+    // Función reutilizable para cargar pagos
+    async function cargarPagos() {
       const tbody = document.getElementById('pagos-admin-tbody');
+      const totalPagosEl = document.getElementById('totalPagos');
+      const totalMontoEl = document.getElementById('totalMonto');
+      
       try {
         const res = await fetch('/api/admin/pagos');
+        if (!res.ok) throw new Error('Error al cargar pagos');
         const pagos = await res.json();
+        
         if (!Array.isArray(pagos) || pagos.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:1rem;color:#666;">No hay pagos registrados</td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#666;">No hay pagos registrados</td></tr>`;
+          totalPagosEl.textContent = '0';
+          totalMontoEl.textContent = 'S/ 0.00';
           return;
         }
+
+        // Calcular estadísticas
+        const totalPagos = pagos.length;
+        const totalMonto = pagos.reduce((sum, p) => sum + (p.monto || 0), 0);
+        totalPagosEl.textContent = totalPagos;
+        totalMontoEl.textContent = `S/ ${totalMonto.toFixed(2)}`;
+
+        // Los pagos ya vienen con la información de la cita poblada
         tbody.innerHTML = pagos.map(p => {
-          const fecha = new Date(p.createdAt).toLocaleString('es-ES');
-          return `<tr>
-            <td>${fecha}</td>
-            <td>${p.email}</td>
-            <td>S/ ${p.monto}</td>
-            <td>${p.metodo}</td>
-            <td>${p.citaId}</td>
+          const fechaObj = new Date(p.createdAt);
+          const fecha = fechaObj.toLocaleDateString('es-ES', { 
+            day: '2-digit', 
+            month: '2-digit', 
+            year: 'numeric' 
+          });
+          const hora = fechaObj.toLocaleTimeString('es-ES', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          });
+          
+          // Formatear método de pago
+          let metodoFormateado = '-';
+          let metodoIcon = '💳';
+          let metodoColor = '#6b7280';
+          
+          if (p.metodo) {
+            const metodoLower = p.metodo.toLowerCase();
+            switch(metodoLower) {
+              case 'tarjeta':
+                metodoFormateado = 'Tarjeta';
+                metodoIcon = '💳';
+                metodoColor = '#2563eb';
+                break;
+              case 'yape':
+                metodoFormateado = 'Yape';
+                metodoIcon = '📱';
+                metodoColor = '#25d366';
+                break;
+              case 'plin':
+                metodoFormateado = 'Plin';
+                metodoIcon = '📲';
+                metodoColor = '#8b5cf6';
+                break;
+              case 'efectivo':
+                metodoFormateado = 'Efectivo';
+                metodoIcon = '💵';
+                metodoColor = '#059669';
+                break;
+              default:
+                metodoFormateado = p.metodo.charAt(0).toUpperCase() + p.metodo.slice(1);
+            }
+          }
+          
+          const especialidad = (p.citaId && typeof p.citaId === 'object' && p.citaId.especialidad) 
+            ? p.citaId.especialidad 
+            : (p.citaId && typeof p.citaId === 'string' ? '-' : '-');
+          
+          // Obtener fecha de la cita si está disponible
+          let fechaCita = '-';
+          if (p.citaId && typeof p.citaId === 'object' && p.citaId.fechaCita) {
+            const fechaCitaObj = new Date(p.citaId.fechaCita);
+            fechaCita = fechaCitaObj.toLocaleDateString('es-ES', { 
+              day: '2-digit', 
+              month: '2-digit', 
+              year: 'numeric' 
+            });
+          }
+          
+          const estadoBadge = p.estado === 'pagado' 
+            ? '<span style="background: #d1fae5; color: #059669; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; display: inline-block;">✓ Pagado</span>'
+            : '<span style="background: #fef3c7; color: #d97706; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; display: inline-block;">⏱ Pendiente</span>';
+          
+          return `<tr style="border-bottom: 1px solid #e5e7eb;">
+            <td style="padding: 1rem;">
+              <div style="font-weight: 600; color: #111827;">${fecha}</div>
+              <div style="font-size: 0.875rem; color: #6b7280;">${hora}</div>
+            </td>
+            <td style="padding: 1rem;">
+              ${p.usuario && p.usuario.nombres && p.usuario.apellidos 
+                ? `<div style="font-weight: 600; color: #111827; margin-bottom: 0.25rem;">
+                     <i class="fa-solid fa-user" style="color: #3b82f6; margin-right: 0.5rem;"></i>
+                     ${p.usuario.nombres} ${p.usuario.apellidos}
+                   </div>
+                   <div style="font-size: 0.875rem; color: #6b7280;">
+                     <i class="fa-solid fa-envelope" style="margin-right: 0.25rem;"></i>
+                     ${p.email}
+                   </div>`
+                : `<div style="font-weight: 500; color: #111827;">
+                     <i class="fa-solid fa-envelope" style="color: #6b7280; margin-right: 0.5rem;"></i>
+                     ${p.email}
+                   </div>`}
+            </td>
+            <td style="padding: 1rem;">
+              <div style="color: #374151;">${especialidad}</div>
+              ${fechaCita !== '-' ? `<div style="font-size: 0.875rem; color: #6b7280;">Cita: ${fechaCita}</div>` : ''}
+            </td>
+            <td style="padding: 1rem;">
+              <div style="font-weight: 700; color: #059669; font-size: 1.125rem;">S/ ${parseFloat(p.monto).toFixed(2)}</div>
+            </td>
+            <td style="padding: 1rem;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div style="width: 45px; height: 45px; border-radius: 10px; background: ${metodoColor}15; border: 2px solid ${metodoColor}40; display: flex; align-items: center; justify-content: center; font-size: 1.75rem;">
+                  ${metodoIcon}
+                </div>
+                <div>
+                  <div style="font-weight: 700; color: #111827; font-size: 1rem;">${metodoFormateado}</div>
+                  <div style="font-size: 0.75rem; color: #6b7280; margin-top: 0.125rem;">
+                    <span style="background: ${metodoColor}20; color: ${metodoColor}; padding: 0.125rem 0.5rem; border-radius: 4px; font-weight: 500;">
+                      ${p.metodo ? p.metodo.toUpperCase() : '-'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </td>
+            <td style="padding: 1rem;">${estadoBadge}</td>
+            <td style="padding: 1rem;">
+              <button class="btn-icon" title="Ver detalles" style="background: #eff6ff; color: #3b82f6; border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" onclick="alert('📋 Detalles del Pago\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n💰 Monto: S/ ${parseFloat(p.monto).toFixed(2)}\\n💳 Método: ${metodoFormateado} (${p.metodo})\\n✅ Estado: ${p.estado === 'pagado' ? 'Pagado' : 'Pendiente'}\\n\\n👤 Paciente: ${p.usuario && p.usuario.nombres && p.usuario.apellidos ? p.usuario.nombres + ' ' + p.usuario.apellidos : 'N/A'}\\n📧 Email: ${p.email}\\n🏥 Especialidad: ${especialidad}\\n📅 Fecha de Cita: ${fechaCita !== '-' ? fechaCita : 'N/A'}\\n🕐 Fecha de Pago: ${fecha} a las ${hora}\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\nID: ${p._id}')">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+            </td>
           </tr>`;
         }).join('');
       } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:1rem;color:#c00;">Error al cargar pagos</td></tr>`;
+        console.error('Error:', e);
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:2rem;color:#c00;">Error al cargar pagos: ${e.message}</td></tr>`;
+        totalPagosEl.textContent = '0';
+        totalMontoEl.textContent = 'S/ 0.00';
+      }
+    }
+
+    // Cargar pagos al iniciar
+    document.addEventListener('DOMContentLoaded', async () => {
+      await cargarPagos();
+
+      // Botón de actualizar
+      const btnRefreshPagos = document.getElementById('btnRefreshPagos');
+      if (btnRefreshPagos) {
+        btnRefreshPagos.addEventListener('click', async () => {
+          btnRefreshPagos.disabled = true;
+          const originalHTML = btnRefreshPagos.innerHTML;
+          btnRefreshPagos.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Actualizando...';
+          
+          try {
+            await cargarPagos();
+            // Opcional: mostrar mensaje de éxito
+            console.log('Pagos actualizados correctamente');
+          } catch (error) {
+            console.error('Error al actualizar pagos:', error);
+            alert('Error al actualizar los pagos');
+          } finally {
+            btnRefreshPagos.disabled = false;
+            btnRefreshPagos.innerHTML = originalHTML;
+          }
+        });
       }
     });
   </script>

@@ -60,6 +60,11 @@ const usuarioSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    imagen: {
+      type: String,
+      default: null,
+      trim: true,
+    },
     /*password_create: {
       type: String,
       required: true,

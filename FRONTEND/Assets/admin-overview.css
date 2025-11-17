@@ -132,9 +132,11 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
+.alert-card.success { border-color: var(--color-success); background: #e6f9f0; color: #0d5d2e; }
 .alert-card.warning { border-color: var(--color-warning); background: #fffbe6; color: #927e00; }
 .alert-card.primary { border-color: var(--color-primary); background: #ebf5ff; color: #1e3a8a; }
 .alert-card.danger  { border-color: var(--color-danger);  background: #feeaea; color: #a00000; }
+.alert-card.info    { border-color: #3b82f6; background: #eef2ff; color: #1e40af; }
 
 .alert-card i { font-size: 1.4rem; }
 

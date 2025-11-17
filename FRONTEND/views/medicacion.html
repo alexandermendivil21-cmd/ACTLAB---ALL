@@ -4,33 +4,66 @@
     <p class="muted">Consulta tus dosis y gestiona recordatorios.</p>
   </div>
 
-  <div class="card">
-    <ul class="med-list">
-      <li class="med-item">
-        <div class="med-icon"><i class="fa-solid fa-capsules"></i></div>
-        <div class="med-info">
-          <div class="med-name">Vitamina D</div>
-          <div class="med-details">1000 UI — 1x día (mañana)</div>
-        </div>
-        <div class="med-actions">
-          <button class="chip small">Editar</button>
-        </div>
-      </li>
+  <!-- Estado de carga -->
+  <div class="card" id="loading-medicacion" style="display: none;">
+    <div style="text-align: center; padding: 2rem;">
+      <div class="spinner-medicacion"></div>
+      <p class="muted">Cargando medicación...</p>
+    </div>
+  </div>
 
-      <li class="med-item">
-        <div class="med-icon"><i class="fa-solid fa-pills"></i></div>
-        <div class="med-info">
-          <div class="med-name">Metformina</div>
-          <div class="med-details">500 mg — 2x día (mañana y noche)</div>
-        </div>
-        <div class="med-actions">
-          <button class="chip small">Editar</button>
-        </div>
-      </li>
+  <!-- Estado vacío -->
+  <div class="card" id="empty-medicacion" style="display: none;">
+    <div style="text-align: center; padding: 2rem;">
+      <i class="fa-solid fa-pills" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+      <h3>No hay medicación registrada</h3>
+      <p class="muted">No se encontraron recetas médicas activas. Consulta con tu médico para obtener una receta.</p>
+    </div>
+  </div>
+
+  <!-- Lista de medicamentos -->
+  <div class="card" id="medicacion-content">
+    <ul class="med-list" id="med-list">
+      <!-- Los medicamentos se cargarán dinámicamente aquí -->
     </ul>
 
     <div class="mt">
-      <button class="cta-button"><i class="fa-solid fa-bell"></i> Configurar recordatorios</button>
+      <button class="cta-button" id="btn-configurar-recordatorios">
+        <i class="fa-solid fa-bell"></i> Configurar recordatorios
+      </button>
     </div>
   </div>
 </section>
+
+<!-- Modal para configurar recordatorio -->
+<div id="modal-recordatorio" class="modal-recordatorio hidden">
+  <div class="modal-recordatorio-content">
+    <div class="modal-recordatorio-header">
+      <h3>Configurar Recordatorio</h3>
+      <button type="button" class="modal-close" id="btn-close-recordatorio">
+        <i class="fa-solid fa-times"></i>
+      </button>
+    </div>
+    <form id="form-recordatorio">
+      <input type="hidden" id="recordatorio-medicamento-id">
+      <div class="form-group">
+        <label>Medicamento</label>
+        <input type="text" id="recordatorio-medicamento-nombre" readonly>
+      </div>
+      <div class="form-group">
+        <label>Hora del recordatorio *</label>
+        <input type="time" id="recordatorio-hora" required>
+      </div>
+      <div class="form-group">
+        <label>
+          <input type="checkbox" id="recordatorio-activo">
+          Activar recordatorio
+        </label>
+      </div>
+      <div class="modal-recordatorio-actions">
+        <button type="button" class="btn-secondary" id="btn-cancelar-recordatorio">Cancelar</button>
+        <button type="submit" class="btn-primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>

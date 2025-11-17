@@ -71,6 +71,9 @@ router.put("/:id", async (req, res) => {
     if (especialidad) update.especialidad = especialidad;
     if (motivoCita) update.motivoCita = motivoCita;
     if (estado) update.estado = estado;
+    
+    // Marcar que la modificación fue realizada por el paciente
+    update.modificadaPor = "paciente";
 
     const cita = await Cita.findByIdAndUpdate(id, update, { new: true });
     if (!cita) return res.status(404).json({ error: "Cita no encontrada" });
@@ -92,8 +95,22 @@ router.put("/:id", async (req, res) => {
 router.patch("/:id/cancelar", async (req, res) => {
   try {
     const { id } = req.params;
-    const cita = await Cita.findByIdAndUpdate(id, { estado: "cancelada" }, { new: true });
+    console.log("🚫 Cancelando cita:", id);
+    
+    // Marcar que la cancelación fue realizada por el paciente
+    const cita = await Cita.findByIdAndUpdate(
+      id, 
+      { estado: "cancelada", canceladaPor: "paciente" }, 
+      { new: true }
+    );
     if (!cita) return res.status(404).json({ error: "Cita no encontrada" });
+
+    console.log("✅ Cita cancelada por paciente:", {
+      id: cita._id,
+      email: cita.email,
+      estado: cita.estado,
+      canceladaPor: cita.canceladaPor
+    });
 
     await crearNotificacion(
       "cita_cancelada",

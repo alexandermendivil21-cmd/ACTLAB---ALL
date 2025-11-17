@@ -1,52 +1,1984 @@
 <section class="pagos">
   <div class="section-header">
-    <h1>Pagos</h1>
-    <p class="muted">Historial de pagos y operaciones recientes.</p>
+    <div>
+      <h1>Mis Pagos</h1>
+      <p class="muted">Gestiona y revisa tu historial de pagos</p>
+    </div>
   </div>
 
-  <div class="card">
-    <h3 class="card-title">Mis pagos</h3>
-    <div class="table-wrapper">
-      <table class="tabla-pruebas" aria-label="Lista de pagos">
+  <!-- Último pago realizado -->
+  <div id="ultimoPagoCard" class="ultimo-pago-card" style="display: none;">
+    <div class="card-header-ultimo">
+      <div class="ultimo-pago-badge">
+        <i class="fa-solid fa-check-circle"></i>
+        ÚLTIMO PAGO
+      </div>
+    </div>
+    <div class="ultimo-pago-content">
+      <div class="ultimo-pago-main">
+        <div class="ultimo-pago-info">
+          <h3 id="ultimoPagoTitulo">-</h3>
+          <div class="ultimo-pago-details">
+            <div class="detail-item">
+              <i class="fa-solid fa-calendar"></i>
+              <span id="ultimoPagoFecha">-</span>
+            </div>
+            <div class="detail-item">
+              <i class="fa-solid fa-wallet"></i>
+              <span id="ultimoPagoMetodo">-</span>
+            </div>
+            <div class="detail-item">
+              <i class="fa-solid fa-stethoscope"></i>
+              <span id="ultimoPagoEspecialidad">-</span>
+            </div>
+            <div class="detail-item">
+              <span id="ultimoPagoEstado">-</span>
+            </div>
+          </div>
+        </div>
+        <div class="ultimo-pago-monto">
+          <div class="monto-label">Monto</div>
+          <div class="monto-value" id="ultimoPagoMonto">-</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Opciones de pago - Citas pendientes -->
+  <div id="opcionesPagoCard" class="citas-pendientes-card" style="display: none;">
+    <div class="card-header">
+      <div>
+        <h3>
+          <i class="fa-solid fa-credit-card"></i>
+          Pagar Citas Pendientes
+        </h3>
+        <p class="card-subtitle">Citas que requieren pago</p>
+      </div>
+    </div>
+    <div class="citas-pendientes-list" id="citasPendientesList">
+      <!-- Se llenará dinámicamente -->
+    </div>
+  </div>
+
+  <!-- Nueva Tabla de Pagos Moderna -->
+  <div class="pagos-table-container">
+    <div class="table-header-modern">
+      <div class="table-header-content">
+        <h2 class="table-title">
+          <i class="fa-solid fa-receipt"></i>
+          Historial de Pagos
+        </h2>
+        <p class="table-subtitle">Revisa todos tus pagos realizados</p>
+      </div>
+    </div>
+    
+    <!-- Contenedor de tabla responsive -->
+    <div class="table-responsive-wrapper">
+      <table class="pagos-table-modern" id="pagos-table-modern">
         <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Monto</th>
-            <th>Método</th>
-            <th>Estado</th>
+            <th class="col-fecha">
+              <div class="th-content">
+                <i class="fa-solid fa-calendar-days"></i>
+                <span>Fecha y Hora</span>
+              </div>
+            </th>
+            <th class="col-especialidad">
+              <div class="th-content">
+                <i class="fa-solid fa-stethoscope"></i>
+                <span>Especialidad</span>
+              </div>
+            </th>
+            <th class="col-monto">
+              <div class="th-content">
+                <i class="fa-solid fa-dollar-sign"></i>
+                <span>Monto</span>
+              </div>
+            </th>
+            <th class="col-metodo">
+              <div class="th-content">
+                <i class="fa-solid fa-credit-card"></i>
+                <span>Método</span>
+              </div>
+            </th>
+            <th class="col-estado">
+              <div class="th-content">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>Estado</span>
+              </div>
+            </th>
+            <th class="col-acciones">
+              <div class="th-content">
+                <i class="fa-solid fa-ellipsis-vertical"></i>
+                <span>Acciones</span>
+              </div>
+            </th>
           </tr>
         </thead>
-        <tbody id="pagos-tbody"></tbody>
+        <tbody id="pagos-tbody-modern">
+          <!-- Las filas se insertarán dinámicamente -->
+        </tbody>
       </table>
     </div>
   </div>
 
+  <!-- Modal de Detalles de Pago -->
+  <div id="modalDetallePago" class="modal-overlay">
+    <div class="modal-content-detalle">
+      <div class="modal-header-detalle">
+        <h2>
+          <i class="fa-solid fa-receipt"></i>
+          Detalles del Pago
+        </h2>
+        <button type="button" id="cerrarModalPago" class="btn-close-modal" onclick="if(typeof window.cerrarModalDetallePago === 'function') window.cerrarModalDetallePago(event);">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+
+      <form id="formDetallePago" class="form-detalle-pago">
+        <div class="form-field-detalle">
+          <label>
+            <i class="fa-solid fa-wallet"></i>
+            Tipo de Pago
+          </label>
+          <input type="text" id="detalleTipoPago" readonly>
+        </div>
+
+        <div class="form-field-detalle">
+          <label>
+            <i class="fa-solid fa-user"></i>
+            Nombre del Paciente
+          </label>
+          <input type="text" id="detalleNombrePaciente" readonly>
+        </div>
+
+        <div class="form-field-detalle">
+          <label>
+            <i class="fa-solid fa-envelope"></i>
+            Correo
+          </label>
+          <input type="email" id="detalleCorreo" readonly>
+        </div>
+
+        <div class="form-field-detalle">
+          <label>
+            <i class="fa-solid fa-calendar"></i>
+            Fecha de Pago
+          </label>
+          <input type="text" id="detalleFecha" readonly>
+        </div>
+
+        <div class="form-field-detalle">
+          <label>
+            <i class="fa-solid fa-flask"></i>
+            Tipo de Análisis / Especialidad
+          </label>
+          <input type="text" id="detalleTipoAnalisis" readonly>
+        </div>
+
+        <div class="form-field-detalle">
+          <label>
+            <i class="fa-solid fa-dollar-sign"></i>
+            Monto a Pagar
+          </label>
+          <input type="text" id="detalleMonto" readonly class="monto-input">
+        </div>
+
+        <div class="form-field-detalle">
+          <label>
+            <i class="fa-solid fa-circle-check"></i>
+            Estado
+          </label>
+          <div id="detalleEstado" class="estado-detalle"></div>
+        </div>
+
+        <div class="modal-actions-detalle">
+          <button type="button" id="btnCerrarDetalle" class="btn-secondary-detalle" onclick="if(typeof window.cerrarModalDetallePago === 'function') window.cerrarModalDetallePago(event);">
+            Cerrar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <style>
+    /* Estilos para la sección de pagos */
+    .pagos {
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      margin-bottom: 2rem;
+    }
+
+    .section-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 0.5rem;
+    }
+
+    /* Estadísticas */
+    .stats-grid-pagos {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card-pago {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .stat-card-pago:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .stat-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .stat-blue .stat-icon {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+
+    .stat-green .stat-icon {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    }
+
+    .stat-content {
+      flex: 1;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 0.25rem;
+    }
+
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #111827;
+    }
+
+    .stat-green .stat-value {
+      color: #059669;
+    }
+
+    /* Último pago card */
+    .ultimo-pago-card {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border: 2px solid #3b82f6;
+      border-radius: 16px;
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+
+    .card-header-ultimo {
+      padding: 1rem 1.5rem;
+      background: rgba(59, 130, 246, 0.1);
+      border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .ultimo-pago-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #3b82f6;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .ultimo-pago-content {
+      padding: 1.5rem;
+    }
+
+    .ultimo-pago-main {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 2rem;
+    }
+
+    .ultimo-pago-info h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 1rem;
+    }
+
+    .ultimo-pago-details {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+    }
+
+    .detail-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      color: #374151;
+    }
+
+    .detail-item i {
+      color: #3b82f6;
+      width: 16px;
+    }
+
+    .ultimo-pago-monto {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .monto-label {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin-bottom: 0.5rem;
+    }
+
+    .monto-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #059669;
+    }
+
+    /* Citas pendientes */
+    .citas-pendientes-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .card-header h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-header h3 i {
+      color: #3b82f6;
+    }
+
+    .card-subtitle {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin: 0;
+    }
+
+    .citas-pendientes-list {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .cita-pendiente-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 1.5rem;
+      background: white;
+      transition: all 0.2s;
+    }
+
+    .cita-pendiente-item:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .cita-pendiente-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+
+    .cita-pendiente-info h4 {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 0.5rem;
+    }
+
+    .cita-pendiente-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .cita-pendiente-meta i {
+      margin-right: 0.5rem;
+      width: 16px;
+    }
+
+    .cita-pendiente-precio {
+      text-align: right;
+    }
+
+    .cita-pendiente-precio .precio-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #059669;
+    }
+
+    .cita-pendiente-precio .precio-label {
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    .btn-pagar-cita {
+      width: 100%;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-pagar-cita:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+
+    /* Nueva Tabla de Pagos Moderna */
+    .pagos-table-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+      margin-bottom: 2rem;
+    }
+
+    .table-header-modern {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 1.5rem 2rem;
+      color: white;
+    }
+
+    .table-header-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .table-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .table-title i {
+      font-size: 1.25rem;
+    }
+
+    .table-subtitle {
+      font-size: 0.875rem;
+      opacity: 0.9;
+      margin: 0;
+    }
+
+    .table-responsive-wrapper {
+      overflow-x: auto;
+      overflow-y: visible;
+    }
+
+    .pagos-table-modern {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      background: white;
+    }
+
+    .pagos-table-modern thead {
+      background: #f8fafc;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .pagos-table-modern th {
+      padding: 1.25rem 1.5rem;
+      text-align: left;
+      font-weight: 600;
+      color: #475569;
+      font-size: 0.8125rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid #e2e8f0;
+      white-space: nowrap;
+    }
+
+    .th-content {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .th-content i {
+      color: #64748b;
+      font-size: 0.875rem;
+    }
+
+    .pagos-table-modern tbody tr {
+      border-bottom: 1px solid #e2e8f0;
+      transition: all 0.2s ease;
+      background: white;
+    }
+
+    .pagos-table-modern tbody tr:hover {
+      background: #f8fafc;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+      transform: translateY(-1px);
+    }
+
+    .pagos-table-modern tbody tr:last-child {
+      border-bottom: none;
+    }
+
+    .pagos-table-modern td {
+      padding: 1.25rem 1.5rem;
+      vertical-align: middle;
+    }
+
+    /* Columna Fecha */
+    .col-fecha {
+      min-width: 140px;
+    }
+
+    /* Columna Especialidad */
+    .col-especialidad {
+      min-width: 150px;
+    }
+
+    /* Columna Monto */
+    .col-monto {
+      min-width: 120px;
+      text-align: right;
+    }
+
+    /* Columna Método */
+    .col-metodo {
+      min-width: 160px;
+    }
+
+    /* Columna Estado */
+    .col-estado {
+      min-width: 130px;
+    }
+
+    /* Columna Acciones */
+    .col-acciones {
+      min-width: 180px;
+      text-align: center;
+    }
+
+    /* Estilos para contenido de celdas */
+    .cell-fecha {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .cell-fecha-date {
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 0.9375rem;
+    }
+
+    .cell-fecha-time {
+      font-size: 0.8125rem;
+      color: #64748b;
+    }
+
+    .cell-especialidad {
+      color: #475569;
+      font-weight: 500;
+      font-size: 0.9375rem;
+    }
+
+    .cell-monto {
+      font-weight: 700;
+      color: #059669;
+      font-size: 1.125rem;
+      text-align: right;
+    }
+
+    .cell-metodo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .metodo-icon-wrapper {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      flex-shrink: 0;
+      border: 2px solid;
+    }
+
+    .metodo-icon-wrapper.tarjeta {
+      background: rgba(37, 99, 235, 0.1);
+      border-color: rgba(37, 99, 235, 0.3);
+      color: #2563eb;
+    }
+
+    .metodo-icon-wrapper.yape {
+      background: rgba(37, 211, 102, 0.1);
+      border-color: rgba(37, 211, 102, 0.3);
+      color: #25d366;
+    }
+
+    .metodo-icon-wrapper.plin {
+      background: rgba(139, 92, 246, 0.1);
+      border-color: rgba(139, 92, 246, 0.3);
+      color: #8b5cf6;
+    }
+
+    .metodo-icon-wrapper.efectivo {
+      background: rgba(5, 150, 105, 0.1);
+      border-color: rgba(5, 150, 105, 0.3);
+      color: #059669;
+    }
+
+    .metodo-info {
+      display: flex;
+      flex-direction: column;
+      gap: 0.125rem;
+    }
+
+    .metodo-name {
+      font-weight: 600;
+      color: #1e293b;
+      font-size: 0.9375rem;
+    }
+
+    .metodo-type {
+      font-size: 0.75rem;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .cell-estado {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .estado-badge-modern {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .estado-badge-modern.pagado {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .estado-badge-modern.pendiente {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .cell-acciones {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .btn-action-modern {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 0.625rem 1.25rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+    }
+
+    .btn-action-modern:hover {
+      background: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+    }
+
+    .select-metodo-modern {
+      padding: 0.5rem 0.75rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.8125rem;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      max-width: 150px;
+      font-weight: 500;
+      color: #475569;
+    }
+
+    .select-metodo-modern:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .select-metodo-modern:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    .select-label {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-bottom: 0.375rem;
+      font-weight: 500;
+    }
+
+    .pago-fecha {
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 0.25rem;
+    }
+
+    .pago-hora {
+      font-size: 0.875rem;
+      color: #6b7280;
+    }
+
+    .pago-especialidad {
+      color: #374151;
+      font-weight: 500;
+    }
+
+    .pago-monto {
+      font-weight: 700;
+      color: #059669;
+      font-size: 1.125rem;
+    }
+
+    .pago-metodo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .pago-metodo-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+    
+    .pago-metodo-icon i {
+      font-size: 1.25rem;
+    }
+
+    .pago-metodo-info {
+      flex: 1;
+    }
+
+    .pago-metodo-name {
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .pago-metodo-badge {
+      font-size: 0.75rem;
+      padding: 0.125rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 500;
+      margin-top: 0.25rem;
+      display: inline-block;
+    }
+
+    .estado-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    .estado-pagado {
+      background: #d1fae5;
+      color: #059669;
+    }
+
+    .estado-pendiente {
+      background: #fef3c7;
+      color: #d97706;
+    }
+
+    .btn-ver-detalles {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .btn-ver-detalles:hover {
+      background: #2563eb;
+      transform: translateY(-1px);
+    }
+
+    .metodo-pago-select {
+      padding: 0.5rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      background: white;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+      font-weight: 500;
+    }
+
+    .metodo-pago-select:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+
+    .metodo-pago-select:focus {
+      outline: none;
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content-detalle {
+      background: white;
+      border-radius: 16px;
+      padding: 2rem;
+      max-width: 600px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header-detalle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .modal-header-detalle h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .modal-header-detalle h2 i {
+      color: #3b82f6;
+    }
+
+    .btn-close-modal {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #6b7280;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-close-modal:hover {
+      background: #f3f4f6;
+      color: #111827;
+    }
+
+    .form-detalle-pago {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-field-detalle label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .form-field-detalle label i {
+      color: #3b82f6;
+      width: 16px;
+    }
+
+    .form-field-detalle input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #f9fafb;
+      color: #111827;
+    }
+
+    .form-field-detalle input.monto-input {
+      font-size: 1.25rem;
+      font-weight: 700;
+      background: #f0fdf4;
+      color: #059669;
+      text-align: right;
+    }
+
+    .estado-detalle {
+      padding: 0.75rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #f9fafb;
+    }
+
+    .modal-actions-detalle {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 1rem;
+    }
+
+    .btn-secondary-detalle {
+      background: #6b7280;
+      color: white;
+      border: none;
+      padding: 0.75rem 2rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-secondary-detalle:hover {
+      background: #4b5563;
+    }
+
+    /* Responsive para nueva tabla */
+    @media (max-width: 1024px) {
+      .pagos-table-modern {
+        font-size: 0.875rem;
+      }
+
+      .pagos-table-modern th,
+      .pagos-table-modern td {
+        padding: 1rem;
+      }
+
+      .metodo-icon-wrapper {
+        width: 40px;
+        height: 40px;
+        font-size: 1.25rem;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .pagos {
+        padding: 1rem;
+      }
+
+      .table-header-modern {
+        padding: 1rem 1.5rem;
+      }
+
+      .table-title {
+        font-size: 1.25rem;
+      }
+
+      .ultimo-pago-main {
+        flex-direction: column;
+      }
+
+      .ultimo-pago-monto {
+        text-align: left;
+      }
+
+      .ultimo-pago-details {
+        grid-template-columns: 1fr;
+      }
+
+      .table-responsive-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .pagos-table-modern {
+        min-width: 900px;
+      }
+
+      .pagos-table-modern th,
+      .pagos-table-modern td {
+        padding: 0.875rem 1rem;
+        font-size: 0.8125rem;
+      }
+
+      .cell-acciones {
+        min-width: 140px;
+      }
+
+      .btn-action-modern {
+        padding: 0.5rem 1rem;
+        font-size: 0.8125rem;
+      }
+
+      .select-metodo-modern {
+        max-width: 120px;
+        font-size: 0.75rem;
+        padding: 0.375rem 0.5rem;
+      }
+
+      .modal-content-detalle {
+        width: 95%;
+        padding: 1.5rem;
+      }
+    }
+
+    /* Estado vacío */
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #6b7280;
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .empty-state-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: #111827;
+    }
+
+    .empty-state-text {
+      font-size: 0.875rem;
+    }
+  </style>
+
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
+    // Función para cargar los pagos (reutilizable)
+    async function cargarPagosEnTabla() {
       const email = sessionStorage.getItem('userEmail');
-      const tbody = document.getElementById('pagos-tbody');
-      if (!tbody || !email) return;
+      const tbody = document.getElementById('pagos-tbody-modern');
+      
+      if (!tbody || !email) {
+        if (tbody) {
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-state" style="text-align: center; padding: 3rem;"><div class="empty-state-icon">⚠️</div><div class="empty-state-title">No se encontró el email del usuario</div></td></tr>';
+        }
+        return;
+      }
+      
       try {
-        const res = await fetch(`/api/pagos?email=${email}`);
-        const pagos = await res.json();
-        if (!Array.isArray(pagos) || pagos.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1rem;color:#666;">No tienes pagos registrados</td></tr>`;
+        console.log('Cargando pagos para email:', email);
+        // Agregar timestamp para evitar caché y asegurar datos frescos
+        const timestamp = new Date().getTime();
+        const res = await fetch(`http://localhost:5000/api/pagos?email=${encodeURIComponent(email)}&_t=${timestamp}`, {
+          cache: 'no-cache',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({ message: 'Error desconocido' }));
+          console.error('Error al cargar pagos:', errorData);
+          throw new Error(errorData.message || 'Error al cargar pagos');
+        }
+        
+        const data = await res.json();
+        
+        // Asegurar que sea un array
+        const pagos = Array.isArray(data) ? data : [];
+        console.log(`✅ Pagos cargados: ${pagos.length} pagos encontrados`);
+        if (pagos.length > 0) {
+          console.log('Primer pago:', {
+            _id: pagos[0]._id,
+            email: pagos[0].email,
+            monto: pagos[0].monto,
+            metodo: pagos[0].metodo,
+            estado: pagos[0].estado,
+            tieneCita: !!pagos[0].citaId,
+            especialidad: pagos[0].citaId?.especialidad || 'N/A'
+          });
+        }
+        
+        if (pagos.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="6" style="text-align: center; padding: 4rem 2rem; color: #666;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">📄</div>
+                <div style="font-size: 1.25rem; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem;">No hay pagos registrados</div>
+                <div style="font-size: 0.9375rem; color: #64748b;">Tus pagos aparecerán aquí una vez que realices uno</div>
+              </td>
+            </tr>`;
+          const ultimoPagoCard = document.getElementById('ultimoPagoCard');
+          if (ultimoPagoCard) ultimoPagoCard.style.display = 'none';
           return;
         }
-        tbody.innerHTML = pagos.map(p => {
-          const fecha = new Date(p.createdAt).toLocaleString('es-ES');
+
+        // Ordenar pagos por fecha más reciente primero
+        pagos.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt) : new Date(0);
+          const dateB = b.createdAt ? new Date(b.createdAt) : new Date(0);
+          return dateB - dateA;
+        });
+
+        // Mostrar último pago
+        if (pagos.length > 0) {
+          const ultimoPago = pagos[0];
+          
+          // Normalizar datos del último pago
+          const pagoNorm = {
+            _id: ultimoPago._id ? String(ultimoPago._id) : '',
+            email: ultimoPago.email || '',
+            citaId: ultimoPago.citaId || null,
+            monto: (ultimoPago.monto !== undefined && ultimoPago.monto !== null) ? parseFloat(ultimoPago.monto) : 0,
+            metodo: (ultimoPago.metodo || 'tarjeta').toLowerCase().trim(),
+            estado: (ultimoPago.estado || 'pagado').toLowerCase(),
+            createdAt: ultimoPago.createdAt || ultimoPago.created_at || new Date().toISOString()
+          };
+          
+          // Formatear fecha y hora del pago
+          let fecha = '';
+          let hora = '';
+          try {
+            const fechaObj = new Date(pagoNorm.createdAt);
+            if (!isNaN(fechaObj.getTime())) {
+              fecha = fechaObj.toLocaleDateString('es-ES', { 
+                day: '2-digit', 
+                month: 'long', 
+                year: 'numeric' 
+              });
+              hora = fechaObj.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              });
+            }
+          } catch (e) {
+            console.warn('Error formateando fecha del último pago:', e);
+          }
+          
+          // Formatear método de pago
+          let metodoFormateado = 'Tarjeta';
+          let metodoIcon = '💳';
+          
+          switch(pagoNorm.metodo) {
+            case 'tarjeta':
+              metodoFormateado = 'Tarjeta';
+              metodoIcon = '💳';
+              break;
+            case 'yape':
+              metodoFormateado = 'Yape';
+              metodoIcon = '📱';
+              break;
+            case 'plin':
+              metodoFormateado = 'Plin';
+              metodoIcon = '📲';
+              break;
+            case 'efectivo':
+              metodoFormateado = 'Efectivo';
+              metodoIcon = '💵';
+              break;
+            default:
+              metodoFormateado = pagoNorm.metodo.charAt(0).toUpperCase() + pagoNorm.metodo.slice(1);
+          }
+          
+          // Obtener especialidad
+          let especialidad = '-';
+          if (pagoNorm.citaId && typeof pagoNorm.citaId === 'object' && pagoNorm.citaId !== null) {
+            if (pagoNorm.citaId.especialidad) {
+              especialidad = String(pagoNorm.citaId.especialidad);
+            }
+          }
+          
+          // Obtener monto
+          const monto = isNaN(pagoNorm.monto) || pagoNorm.monto <= 0 ? 0 : pagoNorm.monto;
+          
+          // Obtener estado
+          const estadoBadge = pagoNorm.estado === 'pagado' 
+            ? '<span class="estado-badge estado-pagado"><i class="fa-solid fa-check-circle"></i> Pagado</span>'
+            : '<span class="estado-badge estado-pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>';
+          
+          // Actualizar elementos del último pago
+          const ultimoPagoTitulo = document.getElementById('ultimoPagoTitulo');
+          const ultimoPagoMonto = document.getElementById('ultimoPagoMonto');
+          const ultimoPagoFecha = document.getElementById('ultimoPagoFecha');
+          const ultimoPagoMetodo = document.getElementById('ultimoPagoMetodo');
+          const ultimoPagoEspecialidad = document.getElementById('ultimoPagoEspecialidad');
+          const ultimoPagoEstado = document.getElementById('ultimoPagoEstado');
+          const ultimoPagoCard = document.getElementById('ultimoPagoCard');
+          
+          if (ultimoPagoTitulo) ultimoPagoTitulo.textContent = `Pago por ${especialidad}`;
+          if (ultimoPagoMonto) ultimoPagoMonto.textContent = `S/ ${monto.toFixed(2)}`;
+          if (ultimoPagoFecha) ultimoPagoFecha.textContent = fecha && hora ? `${fecha} a las ${hora}` : 'Fecha no disponible';
+          if (ultimoPagoMetodo) ultimoPagoMetodo.innerHTML = `${metodoIcon} ${metodoFormateado}`;
+          if (ultimoPagoEspecialidad) ultimoPagoEspecialidad.textContent = especialidad;
+          if (ultimoPagoEstado) ultimoPagoEstado.innerHTML = estadoBadge;
+          if (ultimoPagoCard) ultimoPagoCard.style.display = 'block';
+        }
+
+        // Cargar citas pendientes
+        await cargarCitasPendientes(email);
+
+        // Renderizar pagos - CORREGIDO
+        const filasHTML = pagos.map((p) => {
+          // Normalizar datos del pago de forma más robusta
+          let monto = 0;
+          if (typeof p.monto === 'number') {
+            monto = p.monto;
+          } else if (p.monto !== undefined && p.monto !== null) {
+            monto = parseFloat(String(p.monto));
+            if (isNaN(monto)) monto = 0;
+          }
+          
+          let metodo = 'tarjeta';
+          if (p.metodo) {
+            const metodoStr = String(p.metodo).toLowerCase().trim();
+            if (['tarjeta', 'yape', 'plin', 'efectivo'].includes(metodoStr)) {
+              metodo = metodoStr;
+            }
+          }
+          
+          let estado = 'pagado';
+          if (p.estado) {
+            const estadoStr = String(p.estado).toLowerCase().trim();
+            if (['pagado', 'pendiente'].includes(estadoStr)) {
+              estado = estadoStr;
+            }
+          }
+          
+          const pago = {
+            _id: p._id ? String(p._id) : '',
+            email: p.email || '',
+            citaId: p.citaId || null,
+            monto: monto,
+            metodo: metodo,
+            estado: estado,
+            createdAt: p.createdAt || p.created_at || new Date().toISOString()
+          };
+          
+          // Extraer información de la cita
+          let especialidad = '-';
+          let fechaCita = null;
+          
+          if (pago.citaId) {
+            if (typeof pago.citaId === 'object' && pago.citaId !== null) {
+              if (pago.citaId.especialidad) {
+                especialidad = String(pago.citaId.especialidad);
+              }
+              // Obtener fecha de la cita si está disponible
+              if (pago.citaId.fechaCita) {
+                try {
+                  fechaCita = new Date(pago.citaId.fechaCita);
+                  if (isNaN(fechaCita.getTime())) {
+                    fechaCita = null;
+                  }
+                } catch (e) {
+                  fechaCita = null;
+                }
+              }
+            }
+          }
+          
+          // Formatear fecha y hora del pago
+          let fechaPago = '-';
+          let horaPago = '-';
+          try {
+            const fechaPagoObj = new Date(pago.createdAt);
+            if (!isNaN(fechaPagoObj.getTime())) {
+              fechaPago = fechaPagoObj.toLocaleDateString('es-ES', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric' 
+              });
+              horaPago = fechaPagoObj.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false
+              });
+            }
+          } catch (e) {
+            console.warn('Error formateando fecha de pago:', e);
+          }
+          
+          // Formatear fecha de la cita
+          let fechaCitaFormateada = '';
+          if (fechaCita && !isNaN(fechaCita.getTime())) {
+            fechaCitaFormateada = fechaCita.toLocaleDateString('es-ES', { 
+              day: '2-digit', 
+              month: '2-digit', 
+              year: 'numeric' 
+            });
+          }
+          
+          // Formatear método de pago con emojis
+          let metodoFormateado = 'Tarjeta';
+          let metodoIcon = '💳';
+          let metodoColor = '#2563eb';
+          
+          switch(pago.metodo) {
+            case 'tarjeta':
+              metodoFormateado = 'Tarjeta';
+              metodoIcon = '💳';
+              metodoColor = '#2563eb';
+              break;
+            case 'yape':
+              metodoFormateado = 'Yape';
+              metodoIcon = '📱';
+              metodoColor = '#25d366';
+              break;
+            case 'plin':
+              metodoFormateado = 'Plin';
+              metodoIcon = '📲';
+              metodoColor = '#8b5cf6';
+              break;
+            case 'efectivo':
+              metodoFormateado = 'Efectivo';
+              metodoIcon = '💵';
+              metodoColor = '#059669';
+              break;
+            default:
+              metodoFormateado = pago.metodo.charAt(0).toUpperCase() + pago.metodo.slice(1);
+          }
+          
+          // Monto formateado - asegurar que sea un número válido
+          const montoDisplay = (isNaN(pago.monto) || pago.monto <= 0) ? '0.00' : pago.monto.toFixed(2);
+          
+          // Construir la fila con los nuevos estilos modernos
           return `<tr>
-            <td>${fecha}</td>
-            <td>S/ ${p.monto}</td>
-            <td>${p.metodo}</td>
-            <td>${p.estado}</td>
+            <td>
+              <div class="cell-fecha">
+                <div class="cell-fecha-date">${fechaPago}</div>
+                <div class="cell-fecha-time">${horaPago}</div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-especialidad">
+                <div style="font-weight: 500; color: #475569; margin-bottom: 0.25rem;">${especialidad}</div>
+                ${fechaCitaFormateada ? `<div style="font-size: 0.8125rem; color: #64748b;">Cita: ${fechaCitaFormateada}</div>` : ''}
+              </div>
+            </td>
+            <td>
+              <div class="cell-monto">S/ ${montoDisplay}</div>
+            </td>
+            <td>
+              <div class="cell-metodo">
+                <div class="metodo-icon-wrapper ${pago.metodo}">
+                  ${metodoIcon}
+                </div>
+                <div class="metodo-info">
+                  <div class="metodo-name">${metodoFormateado}</div>
+                  <div class="metodo-type">${pago.metodo.toUpperCase()}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="cell-estado">
+                <span class="estado-badge-modern ${pago.estado}">
+                  ${pago.estado === 'pagado' ? '✓' : '⏱'} ${pago.estado === 'pagado' ? 'Pagado' : 'Pendiente'}
+                </span>
+              </div>
+            </td>
+            <td>
+              <div class="cell-acciones">
+                <button onclick="verDetallePago('${pago._id}', '${pago.email}')" class="btn-action-modern" title="Ver Detalles">
+                  <i class="fa-solid fa-eye"></i>
+                  Ver Detalles
+                </button>
+                <div style="width: 100%; max-width: 150px;">
+                  <div class="select-label">Cambiar método:</div>
+                  <select class="select-metodo-modern" data-pago-id="${pago._id}" onchange="actualizarMetodoPago('${pago._id}', this.value)">
+                    <option value="tarjeta" ${pago.metodo === 'tarjeta' ? 'selected' : ''}>Tarjeta</option>
+                    <option value="yape" ${pago.metodo === 'yape' ? 'selected' : ''}>Yape</option>
+                    <option value="plin" ${pago.metodo === 'plin' ? 'selected' : ''}>Plin</option>
+                    <option value="efectivo" ${pago.metodo === 'efectivo' ? 'selected' : ''}>Efectivo</option>
+                  </select>
+                </div>
+              </div>
+            </td>
           </tr>`;
-        }).join('');
+        });
+        
+        tbody.innerHTML = filasHTML.join('');
+        window.pagosData = pagos;
       } catch (e) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:1rem;color:#c00;">Error al cargar pagos</td></tr>`;
+        console.error('Error cargando pagos:', e);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; padding: 4rem 2rem; color: #666;">
+              <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+              <div style="font-size: 1.25rem; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem;">Error al cargar pagos</div>
+              <div style="font-size: 0.9375rem; color: #64748b;">${e.message}</div>
+            </td>
+          </tr>`;
       }
-    });
+    }
+    
+    // Exponer la función globalmente para que pueda ser llamada desde otros scripts
+    window.cargarPagosEnTabla = cargarPagosEnTabla;
+    
+    // Ejecutar cuando se carga la página
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', cargarPagosEnTabla);
+    } else {
+      // DOM ya está listo, ejecutar después de un pequeño delay para asegurar que el DOM esté actualizado
+      setTimeout(() => {
+        const tbody = document.getElementById('pagos-tbody-modern');
+        if (tbody) {
+          cargarPagosEnTabla();
+        }
+      }, 50);
+    }
+
+    // Función para cargar citas pendientes
+    async function cargarCitasPendientes(email) {
+      try {
+        const res = await fetch(`http://localhost:5000/api/citas?email=${encodeURIComponent(email)}`);
+        if (!res.ok) throw new Error('Error al cargar citas');
+        const citas = await res.json();
+        
+        const citasPendientes = Array.isArray(citas) ? citas.filter(cita => {
+          return cita.estado === 'pendiente' || cita.estado === 'Pendiente';
+        }) : [];
+        
+        const opcionesCard = document.getElementById('opcionesPagoCard');
+        const citasList = document.getElementById('citasPendientesList');
+        
+        if (citasPendientes.length === 0) {
+          opcionesCard.style.display = 'none';
+          return;
+        }
+        
+        opcionesCard.style.display = 'block';
+        
+        // Verificar qué citas ya tienen pago
+        const resPagos = await fetch(`http://localhost:5000/api/pagos?email=${encodeURIComponent(email)}`);
+        const pagosExistentes = resPagos.ok ? await resPagos.json() : [];
+        const citasConPago = new Set(pagosExistentes.map(p => {
+          const citaId = p.citaId;
+          if (typeof citaId === 'object' && citaId !== null) {
+            return citaId._id ? citaId._id.toString() : null;
+          }
+          return citaId ? citaId.toString() : null;
+        }).filter(id => id !== null));
+        
+        const citasSinPago = citasPendientes.filter(cita => !citasConPago.has(cita._id.toString()));
+        
+        if (citasSinPago.length === 0) {
+          citasList.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon" style="color: #059669;">✓</div>
+              <div class="empty-state-title">Todas tus citas pendientes ya tienen pago registrado</div>
+            </div>
+          `;
+          return;
+        }
+        
+        const getPrecioEspecialidad = (especialidad) => {
+          const precios = {
+            "Cardiología": 80.00,
+            "Dermatología": 60.00,
+            "Pediatría": 50.00,
+            "Traumatología": 70.00,
+            "Neurología": 90.00,
+            "Hematología": 65.00,
+            "Inmunología": 75.00,
+            "Bioquímica": 55.00,
+          };
+          return precios[especialidad] || 50.00;
+        };
+        
+        citasList.innerHTML = citasSinPago.map(cita => {
+          const fechaObj = new Date(cita.fechaCita);
+          const fecha = fechaObj.toLocaleDateString('es-ES', { 
+            day: '2-digit', 
+            month: 'long', 
+            year: 'numeric',
+            weekday: 'long'
+          });
+          const precio = (window.getPrecioEspecialidad || getPrecioEspecialidad)(cita.especialidad);
+          
+          return `
+            <div class="cita-pendiente-item">
+              <div class="cita-pendiente-header">
+                <div class="cita-pendiente-info">
+                  <h4>${cita.especialidad}</h4>
+                  <div class="cita-pendiente-meta">
+                    <div><i class="fa-solid fa-calendar"></i>${fecha}</div>
+                    <div><i class="fa-solid fa-clock"></i>${cita.horario || '-'}</div>
+                  </div>
+                </div>
+                <div class="cita-pendiente-precio">
+                  <div class="precio-value">S/ ${precio.toFixed(2)}</div>
+                  <div class="precio-label">Monto a pagar</div>
+                </div>
+              </div>
+              <button onclick="pagarCitaPendiente('${cita._id}')" class="btn-pagar-cita">
+                <i class="fa-solid fa-credit-card"></i>
+                Pagar Cita
+              </button>
+            </div>
+          `;
+        }).join('');
+      } catch (error) {
+        console.error('Error cargando citas pendientes:', error);
+      }
+    }
+
+    // Función para pagar cita pendiente - usa la misma lógica que pagarCita
+    window.pagarCitaPendiente = async function(citaId) {
+      console.log('Botón Pagar Cita presionado desde pagos:', citaId);
+      
+      // Si la función pagarCita está disponible (desde dashboardPaciente.js), usarla
+      if (typeof window.pagarCita === 'function') {
+        window.pagarCita(citaId);
+        return;
+      }
+      
+      // Si no está disponible, usar la misma lógica que pagarCita
+      // Verificar si la cita ya tiene pago antes de proceder
+      const email = sessionStorage.getItem("userEmail");
+      if (email) {
+        try {
+          const resPagos = await fetch(`http://localhost:5000/api/pagos?email=${encodeURIComponent(email)}`);
+          if (resPagos.ok) {
+            const pagos = await resPagos.json();
+            const tienePago = pagos.some(pago => {
+              const citaIdPago = typeof pago.citaId === 'object' && pago.citaId !== null && pago.citaId._id
+                ? pago.citaId._id.toString()
+                : (pago.citaId ? pago.citaId.toString() : null);
+              return citaIdPago === citaId.toString();
+            });
+            
+            if (tienePago) {
+              alert('Esta cita ya tiene un pago registrado. Puedes ver el pago en la sección "Pagos".');
+              // Recargar la tabla de pagos
+              if (typeof window.cargarPagosEnTabla === 'function') {
+                window.cargarPagosEnTabla();
+              }
+              return;
+            }
+          }
+        } catch (error) {
+          console.warn('Error al verificar pago:', error);
+          // Continuar con el proceso si hay error en la verificación
+        }
+      }
+      
+      // Guardar el ID de la cita y redirigir directamente a la vista de pago
+      sessionStorage.setItem('ultimaCitaId', citaId);
+      sessionStorage.removeItem('citaIdPagar'); // Limpiar por si acaso
+      if (typeof loadSection === 'function') {
+        loadSection('pagar-cita');
+      } else {
+        window.location.href = '/user/pagar-cita?citaId=' + citaId;
+      }
+    };
+    
+    // Detectar si hay un citaIdPagar en sessionStorage (viene del botón Pagar en citas)
+    const citaIdPagar = sessionStorage.getItem('citaIdPagar');
+    if (citaIdPagar) {
+      console.log('Detectado citaIdPagar, redirigiendo a pagar-cita:', citaIdPagar);
+      sessionStorage.removeItem('citaIdPagar');
+      sessionStorage.setItem('ultimaCitaId', citaIdPagar);
+      // Redirigir inmediatamente a la vista de pago
+      if (typeof loadSection === 'function') {
+        loadSection('pagar-cita');
+      } else {
+        window.location.href = '/user/pagar-cita?citaId=' + citaIdPagar;
+      }
+    }
+
+    // Función para ver detalles del pago
+    window.verDetallePago = async function(pagoId, email) {
+      const modal = document.getElementById('modalDetallePago');
+      if (!modal) return;
+
+      try {
+        const pagos = window.pagosData || [];
+        const pago = pagos.find(p => p._id === pagoId || String(p._id) === String(pagoId));
+        
+        if (!pago) {
+          alert('No se encontró la información del pago');
+          return;
+        }
+
+        // Obtener datos del paciente
+        let nombrePaciente = '-';
+        try {
+          const resPerfil = await fetch(`http://localhost:5000/api/perfil?email=${encodeURIComponent(email)}`);
+          if (resPerfil.ok) {
+            const perfil = await resPerfil.json();
+            nombrePaciente = `${perfil.nombres || ''} ${perfil.apellidos || ''}`.trim() || '-';
+          }
+      } catch (e) {
+          console.warn('Error al cargar perfil del paciente:', e);
+        }
+
+        // Formatear método de pago
+        let metodoFormateado = '-';
+        if (pago.metodo) {
+          const metodoLower = String(pago.metodo).toLowerCase().trim();
+          switch(metodoLower) {
+            case 'tarjeta':
+              metodoFormateado = 'Tarjeta de Crédito/Débito';
+              break;
+            case 'yape':
+              metodoFormateado = 'Yape';
+              break;
+            case 'plin':
+              metodoFormateado = 'Plin';
+              break;
+            case 'efectivo':
+              metodoFormateado = 'Efectivo';
+              break;
+            default:
+              metodoFormateado = String(pago.metodo).charAt(0).toUpperCase() + String(pago.metodo).slice(1).toLowerCase();
+          }
+        }
+
+        // Obtener especialidad
+        let especialidad = '-';
+        if (pago.citaId) {
+          if (typeof pago.citaId === 'object' && pago.citaId !== null) {
+            especialidad = pago.citaId.especialidad || '-';
+          }
+        }
+
+        // Formatear fecha
+        const fechaObj = pago.createdAt ? new Date(pago.createdAt) : new Date();
+        const fechaFormateada = fechaObj.toLocaleDateString('es-ES', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        // Obtener monto
+        const monto = pago.monto ? parseFloat(pago.monto) : 0;
+
+        // Obtener estado
+        const estado = String(pago.estado || 'pendiente').toLowerCase();
+        const estadoBadge = estado === 'pagado' 
+          ? '<span class="estado-badge estado-pagado"><i class="fa-solid fa-check-circle"></i> Pagado</span>'
+          : '<span class="estado-badge estado-pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>';
+
+        // Llenar el formulario
+        document.getElementById('detalleTipoPago').value = metodoFormateado;
+        document.getElementById('detalleNombrePaciente').value = nombrePaciente;
+        document.getElementById('detalleCorreo').value = email || '-';
+        document.getElementById('detalleFecha').value = fechaFormateada;
+        document.getElementById('detalleTipoAnalisis').value = especialidad;
+        document.getElementById('detalleMonto').value = `S/ ${monto.toFixed(2)}`;
+        document.getElementById('detalleEstado').innerHTML = estadoBadge;
+
+        // Mostrar el modal
+        modal.classList.add('active');
+      } catch (error) {
+        console.error('Error al cargar detalles del pago:', error);
+        alert('Error al cargar los detalles del pago');
+      }
+    };
+
+    // Función global para cerrar el modal
+    window.cerrarModalDetallePago = function(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const modal = document.getElementById('modalDetallePago');
+      if (modal) {
+        modal.classList.remove('active');
+      }
+    };
+
+    // Configurar event listeners para cerrar el modal
+    const configurarModal = () => {
+      const modal = document.getElementById('modalDetallePago');
+      const cerrarModalBtn = document.getElementById('cerrarModalPago');
+      const btnCerrarDetalle = document.getElementById('btnCerrarDetalle');
+      const formDetallePago = document.getElementById('formDetallePago');
+
+      if (!modal) return;
+
+      // Configurar botón de cerrar (X) en el header
+      if (cerrarModalBtn) {
+        cerrarModalBtn.onclick = window.cerrarModalDetallePago;
+      }
+
+      // Configurar botón "Cerrar" en el formulario
+      if (btnCerrarDetalle) {
+        btnCerrarDetalle.onclick = window.cerrarModalDetallePago;
+      }
+
+      // Prevenir submit del formulario
+      if (formDetallePago) {
+        formDetallePago.onsubmit = (e) => {
+          e.preventDefault();
+          window.cerrarModalDetallePago(e);
+          return false;
+        };
+      }
+
+      // Cerrar al hacer clic fuera del modal (solo si se hace clic en el overlay, no en el contenido)
+      const modalContent = modal.querySelector('.modal-content-detalle');
+      if (modalContent) {
+        // Prevenir que los clics dentro del contenido cierren el modal
+        modalContent.onclick = (e) => {
+          e.stopPropagation();
+        };
+      }
+      
+      modal.onclick = (e) => {
+        if (e.target === modal) {
+          window.cerrarModalDetallePago(e);
+        }
+      };
+
+      // Cerrar con la tecla ESC
+      const handleEscape = (e) => {
+        if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
+          window.cerrarModalDetallePago(e);
+        }
+      };
+      
+      // Remover el listener anterior si existe
+      document.removeEventListener('keydown', handleEscape);
+      document.addEventListener('keydown', handleEscape);
+    };
+
+    // Configurar el modal cuando se carga la página
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', configurarModal);
+    } else {
+      configurarModal();
+    }
+    
+    // También configurar después de un pequeño delay por si el contenido se carga dinámicamente
+    setTimeout(configurarModal, 200);
+
+    // Función para actualizar el método de pago
+    window.actualizarMetodoPago = async function(pagoId, nuevoMetodo) {
+      if (!pagoId || !nuevoMetodo) {
+        alert('Error: Faltan datos para actualizar el método de pago');
+        return;
+      }
+
+      // Confirmar cambio
+      const confirmar = confirm(`¿Desea cambiar el método de pago a ${nuevoMetodo}?`);
+      if (!confirmar) {
+        // Restaurar el valor anterior en el select
+        const select = document.querySelector(`select[data-pago-id="${pagoId}"]`);
+        if (select) {
+          // Buscar el método actual en los datos almacenados
+          const pagos = window.pagosData || [];
+          const pago = pagos.find(p => p._id === pagoId || String(p._id) === String(pagoId));
+          if (pago && pago.metodo) {
+            select.value = pago.metodo;
+          }
+        }
+        return;
+      }
+
+      try {
+        const res = await fetch(`http://localhost:5000/api/pagos/${pagoId}/metodo`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ metodo: nuevoMetodo })
+        });
+
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.message || 'Error al actualizar el método de pago');
+        }
+
+        const data = await res.json();
+        
+        // Actualizar los datos locales
+        const pagos = window.pagosData || [];
+        const pagoIndex = pagos.findIndex(p => p._id === pagoId || String(p._id) === String(pagoId));
+        if (pagoIndex !== -1) {
+          pagos[pagoIndex].metodo = nuevoMetodo;
+        }
+
+        // Actualizar visualmente la fila sin recargar
+        const select = document.querySelector(`select[data-pago-id="${pagoId}"]`);
+        const fila = select ? select.closest('tr') : null;
+        if (fila) {
+          // Actualizar el método mostrado en la columna
+          const metodoCell = fila.querySelector('.pago-metodo');
+          if (metodoCell) {
+            // Obtener nuevo formato
+            let nuevoMetodoFormateado = nuevoMetodo;
+            let nuevoMetodoIcon = '💳';
+            let nuevoMetodoColor = '#6b7280';
+            
+            switch(nuevoMetodo.toLowerCase()) {
+              case 'tarjeta':
+                nuevoMetodoFormateado = 'Tarjeta';
+                nuevoMetodoIcon = '💳';
+                nuevoMetodoColor = '#2563eb';
+                break;
+              case 'yape':
+                nuevoMetodoFormateado = 'Yape';
+                nuevoMetodoIcon = '📱';
+                nuevoMetodoColor = '#25d366';
+                break;
+              case 'plin':
+                nuevoMetodoFormateado = 'Plin';
+                nuevoMetodoIcon = '📲';
+                nuevoMetodoColor = '#8b5cf6';
+                break;
+              case 'efectivo':
+                nuevoMetodoFormateado = 'Efectivo';
+                nuevoMetodoIcon = '💵';
+                nuevoMetodoColor = '#059669';
+                break;
+            }
+            
+            metodoCell.innerHTML = `
+              <div class="pago-metodo-icon" style="background: ${nuevoMetodoColor}15; border: 2px solid ${nuevoMetodoColor}40;">
+                ${nuevoMetodoIcon}
+              </div>
+              <div class="pago-metodo-info">
+                <div class="pago-metodo-name">${nuevoMetodoFormateado}</div>
+                <div class="pago-metodo-badge" style="background: ${nuevoMetodoColor}20; color: ${nuevoMetodoColor};">
+                  ${nuevoMetodo.toUpperCase()}
+                </div>
+              </div>
+            `;
+          }
+        }
+        
+        // Mostrar mensaje de éxito
+        alert('Método de pago actualizado exitosamente');
+      } catch (error) {
+        console.error('Error al actualizar método de pago:', error);
+        alert('Error al actualizar el método de pago: ' + error.message);
+        
+        // Restaurar el valor anterior en el select
+        const select = document.querySelector(`select[data-pago-id="${pagoId}"]`);
+        if (select) {
+          const pagos = window.pagosData || [];
+          const pago = pagos.find(p => p._id === pagoId || String(p._id) === String(pagoId));
+          if (pago && pago.metodo) {
+            select.value = pago.metodo;
+          }
+        }
+      }
+    };
   </script>
 </section>
-
-

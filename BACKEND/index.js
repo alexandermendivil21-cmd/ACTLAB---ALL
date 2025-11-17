@@ -9,6 +9,11 @@ import resultadosRoutes from "../BACKEND/Routes/resultados.routes.js";
 import notificacionesRoutes from "../BACKEND/Routes/notificaciones.routes.js";
 import pagosRoutes from "../BACKEND/Routes/pagos.routes.js";
 import perfilRoutes from "../BACKEND/Routes/perfil.routes.js";
+import personalRoutes from "../BACKEND/Routes/personal.routes.js";
+import diagnosticoRoutes from "../BACKEND/Routes/diagnostico.routes.js";
+import perfilMedicoRoutes from "../BACKEND/Routes/perfil-medico.routes.js";
+import perfilTecnicoRoutes from "../BACKEND/Routes/perfil-tecnico.routes.js";
+import muestrasRoutes from "../BACKEND/Routes/muestras.routes.js";
 import connectDB from "../BACKEND/Config/mongodb.js";
 import open from "open";
 
@@ -39,6 +44,11 @@ app.use("/api/resultados", resultadosRoutes); // Rutas para resultados (paciente
 app.use("/api", perfilRoutes); // Rutas para perfil del paciente
 app.use("/api", notificacionesRoutes); // Notificaciones admin
 app.use("/api", pagosRoutes); // Pagos
+app.use("/api", personalRoutes); // Personal
+app.use("/api", diagnosticoRoutes); // Diagnósticos
+app.use("/api", perfilMedicoRoutes); // Perfil médico
+app.use("/api", perfilTecnicoRoutes); // Perfil técnico
+app.use("/api", muestrasRoutes); // Muestras
 
 // Rutas HTML (frontend)
 app.get("/", (req, res) =>
@@ -62,11 +72,17 @@ app.get("/admin", (req, res) =>
 app.get("/admin/pacientes", (req, res) =>
   res.sendFile(path.join(__dirname, "../FRONTEND/login_exitoso/pacientes.html"))
 );
+app.get("/admin/personal", (req, res) =>
+  res.sendFile(path.join(__dirname, "../FRONTEND/login_exitoso/personal.html"))
+);
 app.get("/admin/citas", (req, res) =>
   res.sendFile(path.join(__dirname, "../FRONTEND/login_exitoso/citas.html"))
 );
 app.get("/admin/resultados", (req, res) =>
   res.sendFile(path.join(__dirname, "../FRONTEND/login_exitoso/resultados.html"))
+);
+app.get("/admin/diagnosticos", (req, res) =>
+  res.sendFile(path.join(__dirname, "../FRONTEND/login_exitoso/diagnosticos.html"))
 );
 app.get("/admin/pagos", (req, res) =>
   res.sendFile(path.join(__dirname, "../FRONTEND/login_exitoso/pagos.html"))
@@ -74,8 +90,17 @@ app.get("/admin/pagos", (req, res) =>
 app.get("/admin/reportes", (req, res) =>
   res.sendFile(path.join(__dirname, "../FRONTEND/login_exitoso/reportes.html"))
 );
+app.get("/admin/perfil", (req, res) =>
+  res.sendFile(path.join(__dirname, "../FRONTEND/login_exitoso/perfil-medico.html"))
+);
+app.get("/admin/perfil-tecnico", (req, res) =>
+  res.sendFile(path.join(__dirname, "../FRONTEND/login_exitoso/perfil-tecnico.html"))
+);
 app.get("/user/citas", (req, res) =>
   res.sendFile(path.join(__dirname, "../FRONTEND/views/solicitar-cita.html"))
+);
+app.get("/user/pagar-cita", (req, res) =>
+  res.sendFile(path.join(__dirname, "../FRONTEND/views/pagar-cita.html"))
 );
 
 // Servidor

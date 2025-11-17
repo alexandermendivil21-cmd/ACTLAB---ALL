@@ -1,3 +1,8 @@
+/* Clase para ocultar elementos */
+.hidden {
+  display: none !important;
+}
+
 /* Sección */
 .section {
   padding: 2rem 1rem; /* agrega espacio arriba y abajo de la sección */
@@ -6,6 +11,13 @@
 /* Encabezado de sección */
 .section-header {
   margin-bottom: 1.5rem; /* separa el header del grid */
+}
+
+.section-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-bottom: 0.5rem;
 }
 
 
@@ -73,6 +85,209 @@
   opacity: 0.9;
 }
 
+/* ============================================================
+   PERFIL DEL DOCTOR
+   ============================================================ */
+.perfil-doctor {
+  padding: 2rem 1rem;
+}
+
+.btn-back {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s;
+}
+
+.btn-back:hover {
+  opacity: 0.8;
+}
+
+.doctor-profile-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.doctor-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.doctor-profile-avatar-container {
+  flex-shrink: 0;
+}
+
+.doctor-profile-avatar {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid var(--primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.doctor-profile-info {
+  flex: 1;
+}
+
+.doctor-profile-info h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+.doctor-specialty-text {
+  font-size: 1.1rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+}
+
+.doctor-status-badge {
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.doctor-status-badge.activo {
+  background: #d4edda;
+  color: #155724;
+}
+
+.doctor-status-badge.vacaciones {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.doctor-status-badge.inactivo {
+  background: #f8d7da;
+  color: #721c24;
+}
+
+.doctor-profile-details {
+  margin-bottom: 2rem;
+}
+
+.detail-section {
+  margin-bottom: 2rem;
+}
+
+.detail-section h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail-section h3 i {
+  font-size: 1.1rem;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-label {
+  font-size: 0.9rem;
+  color: var(--muted);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail-value {
+  font-size: 1rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.horarios-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.horario-item {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid var(--primary);
+}
+
+.horario-dia {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 0.25rem;
+}
+
+.horario-hora {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.doctor-profile-actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 2rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.doctor-profile-actions .btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.doctor-profile-actions .btn-primary:hover {
+  background: var(--primary-light);
+  transform: translateY(-1px);
+}
+
+.doctor-profile-actions .btn-primary:active {
+  transform: translateY(0);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .grid.grid-3 {
@@ -89,5 +304,27 @@
   }
   .doc-actions {
     justify-content: center;
+  }
+
+  .doctor-profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .doctor-profile-avatar {
+    width: 120px;
+    height: 120px;
+  }
+
+  .doctor-profile-card {
+    padding: 1.5rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .horarios-container {
+    grid-template-columns: 1fr;
   }
 }

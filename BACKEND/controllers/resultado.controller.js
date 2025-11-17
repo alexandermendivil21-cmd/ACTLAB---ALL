@@ -205,3 +205,74 @@ export const getPDF = async (req, res) => {
   }
 };
 
+// Obtener estadísticas de resultados para el dashboard
+export const getEstadisticasResultados = async (req, res) => {
+  try {
+    // Total de resultados emitidos (todos los resultados)
+    const totalResultados = await Resultado.countDocuments({});
+    
+    // Resultados emitidos en las últimas 24 horas
+    const hace24Horas = new Date();
+    hace24Horas.setHours(hace24Horas.getHours() - 24);
+    
+    const resultadosUltimas24h = await Resultado.countDocuments({
+      fechaResultado: {
+        $gte: hace24Horas
+      }
+    });
+
+    console.log("📊 Estadísticas de resultados:", {
+      totalResultados,
+      resultadosUltimas24h
+    });
+
+    res.status(200).json({
+      totalResultados,
+      resultadosUltimas24h
+    });
+  } catch (error) {
+    console.error("Error al obtener estadísticas de resultados:", error);
+    res.status(500).json({ 
+      error: "Error al obtener estadísticas de resultados", 
+      detalle: error.message 
+    });
+  }
+};
+
+// Obtener exámenes más solicitados (agrupados por tipoExamen)
+export const getExamenesSolicitados = async (req, res) => {
+  try {
+    // Agrupar exámenes por tipoExamen y contar
+    const examenesAgrupados = await Resultado.aggregate([
+      {
+        $group: {
+          _id: "$tipoExamen",
+          cantidad: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { cantidad: -1 } // Ordenar por cantidad descendente
+      },
+      {
+        $limit: 10 // Limitar a los 10 más solicitados
+      }
+    ]);
+    
+    // Convertir el resultado a un formato más legible
+    const resultado = {
+      labels: examenesAgrupados.map(item => item._id),
+      datos: examenesAgrupados.map(item => item.cantidad)
+    };
+    
+    console.log("📊 Exámenes más solicitados:", resultado);
+    
+    res.status(200).json(resultado);
+  } catch (error) {
+    console.error("Error al obtener exámenes solicitados:", error);
+    res.status(500).json({ 
+      error: "Error al obtener exámenes solicitados", 
+      detalle: error.message 
+    });
+  }
+};
+
