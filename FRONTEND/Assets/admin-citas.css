@@ -253,6 +253,15 @@
   color: var(--success);
 }
 
+.btn-action.historial {
+  color: #10b981;
+}
+
+.btn-action.historial:hover {
+  background-color: #d1fae5;
+  color: #059669;
+}
+
 /* ESTADO VACÍO */
 .empty-state {
   display: flex;

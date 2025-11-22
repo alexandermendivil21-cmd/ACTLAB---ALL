@@ -18,12 +18,26 @@ const muestraSchema = new mongoose.Schema(
       match: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     },
 
+    // Tipo de muestra
+    tipoMuestra: {
+      type: String,
+      enum: ["sangre", "orina", "heces", "otros"],
+      required: true,
+    },
+
     // Estado de la muestra
     estadoMuestra: {
       type: String,
-      enum: ["recolectada", "en-proceso"],
-      default: "recolectada",
+      enum: ["pendiente", "en análisis", "completado"],
+      default: "pendiente",
       required: true,
+    },
+
+    // Técnico de laboratorio asignado
+    tecnicoLaboratorio: {
+      type: String,
+      trim: true,
+      default: "",
     },
 
     // Observaciones adicionales

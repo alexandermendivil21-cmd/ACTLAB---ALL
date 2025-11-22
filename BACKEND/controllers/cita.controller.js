@@ -1,15 +1,44 @@
 // BACKEND/controllers/cita.controller.js
 import Cita from "../models/Cita.js";
 import Usuario from "../models/Usuario.js";
+import Personal from "../models/Personal.js";
 
 // Obtener todas las citas (para admin)
 export const getCitas = async (req, res) => {
   try {
-    const { email } = req.query;
+    const { email, userCargo, userEmail } = req.query;
     
-    // Si se proporciona email, filtrar por email
-    // Si no, devolver todas las citas (para admin)
-    const query = email ? { email } : {};
+    // Construir query base
+    let query = {};
+    
+    // Si se proporciona email de paciente, filtrar por email
+    if (email) {
+      query.email = email;
+    }
+    
+    // Filtrar según el cargo del usuario
+    if (userCargo === "tecnico") {
+      // Técnico: solo ver citas de análisis
+      query.motivoCita = { $in: ["Análisis", "Para sacar análisis"] };
+    } else if (userCargo === "medico" && userEmail) {
+      // Médico: solo ver citas de consulta médica de su especialidad
+      // Primero obtener la especialidad del médico
+      const medico = await Personal.findOne(
+        { email: userEmail.toLowerCase(), cargo: "medico" },
+        { especialidad: 1 }
+      );
+      
+      if (medico && medico.especialidad && medico.especialidad !== "N/A") {
+        // Filtrar por motivo de consulta médica Y especialidad
+        query.motivoCita = { $in: ["Consulta Médica", "Para consulta médica"] };
+        query.especialidad = medico.especialidad;
+      } else {
+        // Si no tiene especialidad definida, no mostrar citas
+        query.motivoCita = { $in: [] }; // Array vacío = no hay resultados
+      }
+    }
+    // Si es admin o no se especifica cargo, mostrar todas las citas
+    
     const citas = await Cita.find(query).sort({ fechaCita: 1 });
     
     // Obtener emails únicos de las citas

@@ -57,7 +57,7 @@ const citaSchema = new mongoose.Schema(
     // Campos para rastrear quién realizó la acción
     canceladaPor: {
       type: String,
-      enum: ["paciente", "admin", null],
+      enum: ["paciente", "admin", "sistema", null],
       default: null,
     },
 
@@ -65,6 +65,14 @@ const citaSchema = new mongoose.Schema(
       type: String,
       enum: ["paciente", "admin", null],
       default: null,
+    },
+
+    // Contador de intentos de edición por el paciente
+    intentosEdicion: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 2,
     },
   },
   { timestamps: true }

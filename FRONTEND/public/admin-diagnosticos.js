@@ -248,6 +248,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <td>${recetaBadge}</td>
         <td>${estadoBadge}</td>
         <td>
+          <button class="btn-historial" type="button" aria-label="Ver historial médico" title="Ver historial médico del paciente">
+            <i class="fa-solid fa-clipboard-list"></i>
+          </button>
           <button class="btn-edit" type="button" aria-label="Editar diagnóstico">
             <i class="fa-solid fa-pencil"></i>
           </button>
@@ -260,7 +263,8 @@ document.addEventListener("DOMContentLoaded", () => {
         </td>
       `;
 
-      const [btnEdit, btnDelete, btnView] = row.querySelectorAll("button");
+      const [btnHistorial, btnEdit, btnDelete, btnView] = row.querySelectorAll("button");
+      btnHistorial.addEventListener("click", () => verHistorialMedico({ email: d.email }));
       btnEdit.addEventListener("click", () => openModal(true, d));
       btnDelete.addEventListener("click", async () => {
         if (!d._id) return;
@@ -282,6 +286,198 @@ document.addEventListener("DOMContentLoaded", () => {
 
       tableBody.appendChild(row);
     });
+  }
+
+  // === Ver historial médico del paciente ===
+  async function verHistorialMedico(paciente) {
+    if (!paciente.email) {
+      showToast("error", "Error", "No se encontró el email del paciente");
+      return;
+    }
+
+    // Crear modal de carga
+    const viewModal = document.createElement("div");
+    viewModal.className = "modal";
+    viewModal.innerHTML = `
+      <div class="modal-content modal-view" style="max-width: 900px; max-height: 90vh; overflow-y: auto;">
+        <div class="modal-header">
+          <h3>Historial Médico - ${paciente.email}</h3>
+          <button type="button" class="modal-close" onclick="this.closest('.modal').remove()">
+            <i class="fa-solid fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="historial-modal-body" style="padding: 1.5rem;">
+          <div style="text-align: center; padding: 2rem;">
+            <div class="spinner"></div>
+            <p>Cargando historial médico...</p>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-secondary" onclick="this.closest('.modal').remove()">Cerrar</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(viewModal);
+
+    try {
+      // Obtener historial médico
+      const res = await fetch(`http://localhost:5000/api/pacientes/historial?email=${encodeURIComponent(paciente.email)}`);
+      if (!res.ok) {
+        throw new Error("Error al obtener el historial médico");
+      }
+
+      const data = await res.json();
+      const { historial, paciente: infoPaciente, resumen } = data;
+
+      const historialBody = document.getElementById("historial-modal-body");
+      if (!historialBody) return;
+
+      if (!historial || historial.length === 0) {
+        historialBody.innerHTML = `
+          <div style="text-align: center; padding: 3rem; color: #6c757d;">
+            <i class="fa-solid fa-clipboard-list" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <h4 style="margin-bottom: 0.5rem;">No hay historial médico disponible</h4>
+            <p>Este paciente aún no tiene citas, diagnósticos o resultados registrados.</p>
+          </div>
+        `;
+        return;
+      }
+
+      // Construir línea de tiempo del historial
+      let timelineHTML = `
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+          <h4 style="margin: 0 0 0.5rem 0;">Información del Paciente</h4>
+          <p style="margin: 0.25rem 0;"><strong>Nombre:</strong> ${infoPaciente?.nombres || 'N/A'} ${infoPaciente?.apellidos || ''}</p>
+          <p style="margin: 0.25rem 0;"><strong>Edad:</strong> ${infoPaciente?.edad || 'N/A'} años</p>
+          <p style="margin: 0.25rem 0;"><strong>Email:</strong> ${paciente.email}</p>
+        </div>
+        <div style="margin-bottom: 1.5rem; padding: 1rem; background: #e3f2fd; border-radius: 8px;">
+          <h4 style="margin: 0 0 0.5rem 0;">Resumen</h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+            <div><strong>Citas:</strong> ${resumen?.totalCitas || 0}</div>
+            <div><strong>Diagnósticos:</strong> ${resumen?.totalDiagnosticos || 0}</div>
+            <div><strong>Resultados:</strong> ${resumen?.totalResultados || 0}</div>
+            <div><strong>Total de eventos:</strong> ${resumen?.totalEventos || 0}</div>
+          </div>
+        </div>
+        <div style="position: relative; padding-left: 2rem; border-left: 2px solid #e0e0e0;">
+      `;
+
+      historial.forEach((evento) => {
+        const fecha = new Date(evento.fecha);
+        const fechaFormateada = fecha.toLocaleDateString('es-ES', {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+
+        // Determinar ícono según el tipo
+        let icono = "fa-calendar-check";
+        let colorIcono = "#2e86de";
+        if (evento.tipo === "diagnostico") {
+          icono = "fa-user-doctor";
+          colorIcono = "#10b981";
+        } else if (evento.tipo === "resultado") {
+          icono = "fa-vials";
+          colorIcono = "#8b5cf6";
+        } else if (evento.tipo === "cita") {
+          if (evento.motivoCita && evento.motivoCita.includes("Análisis")) {
+            icono = "fa-flask";
+            colorIcono = "#f59e0b";
+          } else {
+            icono = "fa-calendar-check";
+            colorIcono = "#2e86de";
+          }
+        }
+
+        let contenidoEvento = "";
+
+        if (evento.tipo === "diagnostico") {
+          contenidoEvento = `
+            <div style="margin-bottom: 1.5rem; padding: 1rem; background: #fff; border-radius: 8px; border-left: 4px solid ${colorIcono}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <i class="fa-solid ${icono}" style="color: ${colorIcono}; font-size: 1.25rem;"></i>
+                <h4 style="margin: 0;">${evento.titulo}</h4>
+              </div>
+              <p style="color: #6c757d; margin: 0.5rem 0; font-size: 0.9rem;">${evento.subtitulo}</p>
+              <p style="margin: 0.75rem 0;">${evento.descripcion}</p>
+              ${evento.sintomas ? `<p style="margin: 0.5rem 0;"><strong>Síntomas:</strong> ${evento.sintomas}</p>` : ''}
+              ${evento.observaciones ? `<p style="margin: 0.5rem 0;"><strong>Observaciones:</strong> ${evento.observaciones}</p>` : ''}
+              ${evento.tieneReceta && evento.receta.length > 0 ? `
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
+                  <strong>Medicación prescrita:</strong>
+                  <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                    ${evento.receta.map(med => `
+                      <li style="margin: 0.5rem 0;">${med.nombre} - ${med.dosis} (${med.frecuencia}) por ${med.duracion}</li>
+                    `).join('')}
+                  </ul>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        } else if (evento.tipo === "resultado") {
+          contenidoEvento = `
+            <div style="margin-bottom: 1.5rem; padding: 1rem; background: #fff; border-radius: 8px; border-left: 4px solid ${colorIcono}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <i class="fa-solid ${icono}" style="color: ${colorIcono}; font-size: 1.25rem;"></i>
+                <h4 style="margin: 0;">${evento.titulo}</h4>
+              </div>
+              <p style="color: #6c757d; margin: 0.5rem 0; font-size: 0.9rem;">${evento.subtitulo}</p>
+              <p style="margin: 0.75rem 0;">${evento.descripcion}</p>
+              ${evento.observaciones ? `<p style="margin: 0.5rem 0;"><strong>Observaciones:</strong> ${evento.observaciones}</p>` : ''}
+              ${evento.archivoPDF ? `
+                <a href="http://localhost:5000${evento.archivoPDF}" target="_blank" style="display: inline-block; margin-top: 0.5rem; color: #2e86de; text-decoration: none;">
+                  <i class="fa-solid fa-file-pdf"></i> Ver resultado completo
+                </a>
+              ` : ''}
+            </div>
+          `;
+        } else if (evento.tipo === "cita") {
+          const estadoClass = evento.estado === "completada" ? "success" :
+                             evento.estado === "cancelada" ? "danger" :
+                             evento.estado === "confirmada" ? "primary" : "warning";
+          const estadoColors = {
+            success: "#10b981",
+            danger: "#dc2626",
+            primary: "#2e86de",
+            warning: "#f59e0b"
+          };
+          contenidoEvento = `
+            <div style="margin-bottom: 1.5rem; padding: 1rem; background: #fff; border-radius: 8px; border-left: 4px solid ${colorIcono}; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                <i class="fa-solid ${icono}" style="color: ${colorIcono}; font-size: 1.25rem;"></i>
+                <h4 style="margin: 0;">${evento.titulo}</h4>
+              </div>
+              <p style="color: #6c757d; margin: 0.5rem 0; font-size: 0.9rem;">${evento.subtitulo}</p>
+              <p style="margin: 0.75rem 0;">${evento.descripcion}</p>
+              <span style="display: inline-block; margin-top: 0.5rem; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.875rem; background: ${estadoColors[estadoClass]}20; color: ${estadoColors[estadoClass]}; text-transform: capitalize;">
+                ${evento.estado}
+              </span>
+            </div>
+          `;
+        }
+
+        timelineHTML += contenidoEvento;
+      });
+
+      timelineHTML += `</div>`;
+      historialBody.innerHTML = timelineHTML;
+
+    } catch (error) {
+      console.error("Error al cargar historial médico:", error);
+      const historialBody = document.getElementById("historial-modal-body");
+      if (historialBody) {
+        historialBody.innerHTML = `
+          <div style="text-align: center; padding: 2rem; color: #dc2626;">
+            <i class="fa-solid fa-exclamation-circle" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+            <h4 style="margin-bottom: 0.5rem;">Error al cargar el historial</h4>
+            <p>${error.message || "No se pudo cargar el historial médico del paciente."}</p>
+          </div>
+        `;
+      }
+    }
   }
 
   // === Ver diagnóstico completo ===

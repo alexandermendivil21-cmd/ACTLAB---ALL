@@ -18,7 +18,7 @@ export const getMuestras = async (req, res) => {
       muestras.map(async (muestra) => {
         const paciente = await Usuario.findOne(
           { email: muestra.email },
-          { nombres: 1, apellidos: 1, email: 1 }
+          { nombres: 1, apellidos: 1, email: 1, num_documento: 1 }
         );
 
         return {
@@ -28,7 +28,12 @@ export const getMuestras = async (req, res) => {
             : "Paciente no encontrado",
           email: muestra.email,
           fechaRecoleccion: muestra.citaId?.fechaCita || muestra.createdAt,
+          fechaRealizacionCita: muestra.citaId?.fechaCita || muestra.createdAt,
+          tipoMuestra: muestra.tipoMuestra || "otros",
           estadoMuestra: muestra.estadoMuestra,
+          tecnicoLaboratorio: muestra.tecnicoLaboratorio || "",
+          especialidad: muestra.citaId?.especialidad || "N/A",
+          dniPaciente: paciente?.num_documento || "N/A",
           observaciones: muestra.observaciones,
           createdAt: muestra.createdAt,
           updatedAt: muestra.updatedAt,
@@ -61,7 +66,7 @@ export const getMuestraById = async (req, res) => {
 
     const paciente = await Usuario.findOne(
       { email: muestra.email },
-      { nombres: 1, apellidos: 1, email: 1 }
+      { nombres: 1, apellidos: 1, email: 1, num_documento: 1 }
     );
 
     const muestraConPaciente = {
@@ -71,7 +76,12 @@ export const getMuestraById = async (req, res) => {
         : "Paciente no encontrado",
       email: muestra.email,
       fechaRecoleccion: muestra.citaId?.fechaCita || muestra.createdAt,
+      fechaRealizacionCita: muestra.citaId?.fechaCita || muestra.createdAt,
+      tipoMuestra: muestra.tipoMuestra || "otros",
       estadoMuestra: muestra.estadoMuestra,
+      tecnicoLaboratorio: muestra.tecnicoLaboratorio || "",
+      especialidad: muestra.citaId?.especialidad || "N/A",
+      dniPaciente: paciente?.num_documento || "N/A",
       observaciones: muestra.observaciones,
       citaId: muestra.citaId?._id,
       createdAt: muestra.createdAt,
@@ -91,11 +101,11 @@ export const getMuestraById = async (req, res) => {
 // Crear una nueva muestra
 export const createMuestra = async (req, res) => {
   try {
-    const { citaId, email, estadoMuestra, observaciones } = req.body;
+    const { citaId, email, tipoMuestra, estadoMuestra, tecnicoLaboratorio, observaciones } = req.body;
 
-    if (!citaId || !email) {
+    if (!citaId || !email || !tipoMuestra) {
       return res.status(400).json({
-        error: "CitaId y email son obligatorios",
+        error: "CitaId, email y tipoMuestra son obligatorios",
       });
     }
 
@@ -111,18 +121,64 @@ export const createMuestra = async (req, res) => {
       return res.status(404).json({ error: "El usuario no existe" });
     }
 
+    // Validar tipoMuestra
+    if (!["sangre", "orina", "heces", "otros"].includes(tipoMuestra)) {
+      return res.status(400).json({
+        error: "Tipo de muestra inválido. Debe ser: sangre, orina, heces u otros",
+      });
+    }
+
+    // Validar estadoMuestra si se proporciona
+    if (estadoMuestra && !["pendiente", "en análisis", "completado"].includes(estadoMuestra)) {
+      return res.status(400).json({
+        error: "Estado inválido. Debe ser: pendiente, en análisis o completado",
+      });
+    }
+
     const nuevaMuestra = new Muestra({
       citaId,
       email,
-      estadoMuestra: estadoMuestra || "recolectada",
+      tipoMuestra,
+      estadoMuestra: estadoMuestra || "pendiente",
+      tecnicoLaboratorio: tecnicoLaboratorio || "",
       observaciones: observaciones || "",
     });
 
     await nuevaMuestra.save();
 
+    // Obtener información completa de la muestra creada
+    const muestraCompleta = await Muestra.findById(nuevaMuestra._id)
+      .populate({
+        path: "citaId",
+        select: "fechaCita especialidad motivoCita",
+      });
+
+    const paciente = await Usuario.findOne(
+      { email: muestraCompleta.email },
+      { nombres: 1, apellidos: 1, email: 1, num_documento: 1 }
+    );
+
+    const muestraConDatos = {
+      _id: muestraCompleta._id,
+      nombrePaciente: paciente
+        ? `${paciente.nombres} ${paciente.apellidos}`
+        : "Paciente no encontrado",
+      email: muestraCompleta.email,
+      fechaRecoleccion: muestraCompleta.citaId?.fechaCita || muestraCompleta.createdAt,
+      fechaRealizacionCita: muestraCompleta.citaId?.fechaCita || muestraCompleta.createdAt,
+      tipoMuestra: muestraCompleta.tipoMuestra,
+      estadoMuestra: muestraCompleta.estadoMuestra,
+      tecnicoLaboratorio: muestraCompleta.tecnicoLaboratorio || "",
+      especialidad: muestraCompleta.citaId?.especialidad || "N/A",
+      dniPaciente: paciente?.num_documento || "N/A",
+      observaciones: muestraCompleta.observaciones,
+      createdAt: muestraCompleta.createdAt,
+      updatedAt: muestraCompleta.updatedAt,
+    };
+
     res.status(201).json({
       message: "Muestra creada correctamente",
-      muestra: nuevaMuestra,
+      muestra: muestraConDatos,
     });
   } catch (error) {
     console.error("Error al crear la muestra:", error);
@@ -152,9 +208,9 @@ export const updateMuestraEstado = async (req, res) => {
     }
 
     // Validar estado
-    if (estadoMuestra && !["recolectada", "en-proceso"].includes(estadoMuestra)) {
+    if (estadoMuestra && !["pendiente", "en análisis", "completado"].includes(estadoMuestra)) {
       return res.status(400).json({
-        error: "Estado inválido. Debe ser 'recolectada' o 'en-proceso'",
+        error: "Estado inválido. Debe ser 'pendiente', 'en análisis' o 'completado'",
       });
     }
 
@@ -173,7 +229,7 @@ export const updateMuestraEstado = async (req, res) => {
 
     const paciente = await Usuario.findOne(
       { email: muestraActualizada.email },
-      { nombres: 1, apellidos: 1, email: 1 }
+      { nombres: 1, apellidos: 1, email: 1, num_documento: 1 }
     );
 
     const muestraConPaciente = {
@@ -183,7 +239,12 @@ export const updateMuestraEstado = async (req, res) => {
         : "Paciente no encontrado",
       email: muestraActualizada.email,
       fechaRecoleccion: muestraActualizada.citaId?.fechaCita || muestraActualizada.createdAt,
+      fechaRealizacionCita: muestraActualizada.citaId?.fechaCita || muestraActualizada.createdAt,
+      tipoMuestra: muestraActualizada.tipoMuestra || "otros",
       estadoMuestra: muestraActualizada.estadoMuestra,
+      tecnicoLaboratorio: muestraActualizada.tecnicoLaboratorio || "",
+      especialidad: muestraActualizada.citaId?.especialidad || "N/A",
+      dniPaciente: paciente?.num_documento || "N/A",
       observaciones: muestraActualizada.observaciones,
       createdAt: muestraActualizada.createdAt,
       updatedAt: muestraActualizada.updatedAt,

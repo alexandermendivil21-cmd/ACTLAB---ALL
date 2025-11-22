@@ -15,6 +15,242 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   const isMobile = () => window.innerWidth <= 768;
 
+  // Función para crear y mostrar el modal de confirmación de cierre de sesión
+  const mostrarModalCerrarSesion = function(callback) {
+    // Crear el modal si no existe
+    let modal = document.getElementById("modal-logout");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "modal-logout";
+      modal.className = "modal-logout-overlay";
+      modal.innerHTML = `
+        <div class="modal-logout-content">
+          <div class="modal-logout-icon">
+            <i class="fa-solid fa-right-from-bracket"></i>
+          </div>
+          <h3 class="modal-logout-title">¿Cerrar Sesión?</h3>
+          <p class="modal-logout-message">¿Está seguro que desea cerrar sesión? Deberá iniciar sesión nuevamente para acceder.</p>
+          <div class="modal-logout-actions">
+            <button class="btn-logout-cancel" id="btnLogoutCancel">
+              <i class="fa-solid fa-xmark"></i> Cancelar
+            </button>
+            <button class="btn-logout-confirm" id="btnLogoutConfirm">
+              <i class="fa-solid fa-sign-out-alt"></i> Cerrar Sesión
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      // Agregar estilos si no existen
+      if (!document.getElementById("modal-logout-styles")) {
+        const style = document.createElement("style");
+        style.id = "modal-logout-styles";
+        style.textContent = `
+          .modal-logout-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 10000;
+            animation: fadeInLogout 0.3s ease;
+            backdrop-filter: blur(4px);
+          }
+
+          .modal-logout-overlay.hidden {
+            display: none;
+          }
+
+          @keyframes fadeInLogout {
+            from {
+              opacity: 0;
+            }
+            to {
+              opacity: 1;
+            }
+          }
+
+          .modal-logout-content {
+            background: #ffffff;
+            padding: 2.5rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUpLogout 0.3s ease;
+            text-align: center;
+          }
+
+          @keyframes slideUpLogout {
+            from {
+              transform: translateY(30px);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
+          }
+
+          .modal-logout-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+          }
+
+          .modal-logout-icon i {
+            font-size: 2rem;
+            color: #ffffff;
+          }
+
+          .modal-logout-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0 0 0.75rem 0;
+          }
+
+          .modal-logout-message {
+            font-size: 0.95rem;
+            color: #6b7280;
+            line-height: 1.6;
+            margin: 0 0 2rem 0;
+          }
+
+          .modal-logout-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+          }
+
+          .btn-logout-cancel,
+          .btn-logout-confirm {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+          }
+
+          .btn-logout-cancel {
+            background: #f3f4f6;
+            color: #374151;
+          }
+
+          .btn-logout-cancel:hover {
+            background: #e5e7eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          }
+
+          .btn-logout-confirm {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+          }
+
+          .btn-logout-confirm:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+          }
+
+          .btn-logout-cancel:active,
+          .btn-logout-confirm:active {
+            transform: translateY(0);
+          }
+
+          @media (max-width: 480px) {
+            .modal-logout-content {
+              padding: 2rem 1.5rem;
+            }
+
+            .modal-logout-actions {
+              flex-direction: column;
+            }
+
+            .btn-logout-cancel,
+            .btn-logout-confirm {
+              width: 100%;
+              justify-content: center;
+            }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      // Event listeners
+      const btnCancel = document.getElementById("btnLogoutCancel");
+      const btnConfirm = document.getElementById("btnLogoutConfirm");
+
+      btnCancel.addEventListener("click", () => {
+        modal.classList.add("hidden");
+      });
+
+      btnConfirm.addEventListener("click", () => {
+        modal.classList.add("hidden");
+        if (callback) callback();
+      });
+
+      // Cerrar al hacer clic fuera del modal
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          modal.classList.add("hidden");
+        }
+      });
+
+      // Cerrar con ESC
+      const handleEsc = (e) => {
+        if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+          modal.classList.add("hidden");
+          document.removeEventListener("keydown", handleEsc);
+        }
+      };
+      document.addEventListener("keydown", handleEsc);
+    }
+
+    // Mostrar el modal
+    modal.classList.remove("hidden");
+  };
+
+  // Función global para cerrar sesión (disponible para cualquier usuario)
+  window.cerrarSesion = function() {
+    mostrarModalCerrarSesion(() => {
+      // Limpiar todos los datos de sessionStorage
+      sessionStorage.clear();
+      
+      // Limpiar datos específicos de localStorage relacionados con la sesión
+      localStorage.removeItem("token");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("userCargo");
+      localStorage.removeItem("userEmail");
+      localStorage.removeItem("userNombres");
+      localStorage.removeItem("userApellidos");
+      
+      // Limpiar recordatorios de medicación si existen (opcional, comentado para mantenerlos)
+      // localStorage.removeItem("recordatorios");
+      
+      // Mantener datos de "recordar" del login si el usuario los configuró
+      // (no se eliminan para mantener la comodidad del usuario)
+      
+      // Redirigir al login
+      window.location.href = "/login";
+    });
+  };
+
   const loadSection = (section) => {
     fetch(`views/${section}.html`)
       .then((res) => {
@@ -49,6 +285,7 @@ document.addEventListener("DOMContentLoaded", () => {
           else if (section === "overview") initOverviewView();
           else if (section === "pagos") initPagosView();
           else if (section === "medicacion") initMedicacionView();
+          else if (section === "historial") initHistorialView();
           else if (section === "doctores") initDoctoresView();
           else if (section === "perfil-doctor") initPerfilDoctorView();
         }, 180);
@@ -85,11 +322,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       // Manejar logout
       if (section === "logout") {
-        // Limpiar datos de sesión
-        sessionStorage.clear();
-        localStorage.removeItem("token");
-        // Redirigir al login
-        window.location.href = "/login";
+        cerrarSesion();
         return;
       }
       
@@ -110,9 +343,102 @@ document.addEventListener("DOMContentLoaded", () => {
     const email = sessionStorage.getItem("userEmail");
     if (!email) return [];
     try {
+      // Al obtener citas, el backend cancelará automáticamente las no pagadas que ya pasaron
       const res = await fetch(`http://localhost:5000/api/citas?email=${email}`);
       if (!res.ok) throw new Error("Error al obtener citas");
       const data = await res.json();
+      
+      // El backend ya canceló las citas no pagadas, pero verificamos por si acaso
+      // y mostramos notificación si alguna cita fue cancelada automáticamente
+      const ahora = new Date();
+      let citasCanceladasAutomaticamente = 0;
+      
+      for (const cita of data) {
+        // Si la cita fue cancelada automáticamente por el sistema
+        if (cita.estado && cita.estado.toLowerCase() === "cancelada" && cita.canceladaPor === "sistema") {
+          const fechaCita = new Date(cita.fechaCita);
+          const horarioParts = cita.horario ? cita.horario.split(':') : ['0', '0'];
+          const horaCita = parseInt(horarioParts[0]) || 0;
+          const minutosCita = parseInt(horarioParts[1]) || 0;
+          fechaCita.setHours(horaCita, minutosCita, 0, 0);
+          
+          // Si la cita ya pasó y fue cancelada por el sistema, incrementar contador
+          if (fechaCita < ahora) {
+            citasCanceladasAutomaticamente++;
+          }
+        }
+      }
+      
+      // Mostrar notificación si hay citas canceladas automáticamente
+      if (citasCanceladasAutomaticamente > 0) {
+        const mensaje = citasCanceladasAutomaticamente === 1
+          ? "Una de tus citas fue cancelada automáticamente por no haber sido pagada antes de la hora de la cita."
+          : `${citasCanceladasAutomaticamente} de tus citas fueron canceladas automáticamente por no haber sido pagadas antes de la hora de la cita.`;
+        
+        // Mostrar notificación informativa
+        setTimeout(() => {
+          const notification = document.createElement("div");
+          notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 1.25rem 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
+            z-index: 10001;
+            max-width: 420px;
+            animation: slideInRightNotificationCancel 0.4s ease;
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+          `;
+          notification.innerHTML = `
+            <div style="width: 40px; height: 40px; background: rgba(255, 255, 255, 0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i class="fa-solid fa-info-circle" style="font-size: 1.25rem; color: white;"></i>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-size: 1.1rem; font-weight: 700; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fa-solid fa-clock"></i>
+                Cita Cancelada Automáticamente
+              </div>
+              <div style="font-size: 0.95rem; line-height: 1.5; margin: 0; opacity: 0.95;">${mensaje}</div>
+            </div>
+            <button onclick="this.closest('div').remove()" style="background: rgba(255, 255, 255, 0.2); border: none; color: white; width: 28px; height: 28px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          `;
+          
+          // Agregar animación si no existe
+          if (!document.getElementById("notification-cancel-auto-styles")) {
+            const style = document.createElement("style");
+            style.id = "notification-cancel-auto-styles";
+            style.textContent = `
+              @keyframes slideInRightNotificationCancel {
+                from {
+                  transform: translateX(120%);
+                  opacity: 0;
+                }
+                to {
+                  transform: translateX(0);
+                  opacity: 1;
+                }
+              }
+            `;
+            document.head.appendChild(style);
+          }
+          
+          document.body.appendChild(notification);
+          
+          // Auto-ocultar después de 8 segundos
+          setTimeout(() => {
+            notification.style.animation = "slideOutRightNotificationEdit 0.4s ease";
+            setTimeout(() => notification.remove(), 400);
+          }, 8000);
+        }, 500);
+      }
+      
       return data;
     } catch (error) {
       console.error("❌ Error obteniendo citas:", error);
@@ -162,10 +488,13 @@ document.addEventListener("DOMContentLoaded", () => {
       const citaIdStr = cita._id.toString();
       const tienePago = citasConPago.has(citaIdStr);
       const estaCancelada = estado.toLowerCase() === "cancelada";
+      const intentosEdicion = cita.intentosEdicion || 0;
+      const limiteAlcanzado = intentosEdicion >= 2;
       
       // Determinar si los botones deben estar desactivados
       const pagarDeshabilitado = tienePago || estaCancelada;
-      const cancelarDeshabilitado = estaCancelada;
+      const editarDeshabilitado = tienePago || estaCancelada || limiteAlcanzado;
+      const cancelarDeshabilitado = tienePago || estaCancelada;
 
       return `
       <div class="cita-card">
@@ -189,7 +518,13 @@ document.addEventListener("DOMContentLoaded", () => {
             style="background: ${pagarDeshabilitado ? '#9ca3af' : '#059669'}; color: white; border: none; font-weight: 600; cursor: ${pagarDeshabilitado ? 'not-allowed' : 'pointer'}; opacity: ${pagarDeshabilitado ? '0.6' : '1'};">
             <i class="fa-solid fa-credit-card"></i> ${tienePago ? 'Pagado' : 'Pagar'}
           </button>
-          <button class="chip" onclick="editarCitaPrompt('${cita._id}')"><i class="fa-solid fa-pen"></i> Editar</button>
+          <button 
+            class="chip" 
+            onclick="${editarDeshabilitado ? '' : `editarCitaPrompt('${cita._id}')`}" 
+            ${editarDeshabilitado ? 'disabled' : ''}
+            style="background: ${editarDeshabilitado ? '#9ca3af' : '#3b82f6'}; color: white; border: none; cursor: ${editarDeshabilitado ? 'not-allowed' : 'pointer'}; opacity: ${editarDeshabilitado ? '0.6' : '1'};">
+            <i class="fa-solid fa-pen"></i> Editar
+          </button>
           <button 
             class="chip danger" 
             onclick="${cancelarDeshabilitado ? '' : `cancelarCita('${cita._id}')`}" 
@@ -283,23 +618,835 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  window.editarCitaPrompt = async (id) => {
-    const nuevaFecha = prompt('Nueva fecha (YYYY-MM-DD):');
-    if (!nuevaFecha) return;
-    const nuevoHorario = prompt('Nuevo horario (HH:mm):');
-    if (!nuevoHorario) return;
+  // Función para mostrar ventana emergente (modal) de alerta
+  const mostrarModalAlerta = (titulo, mensaje, tipo = "info") => {
+    // Crear modal si no existe
+    let modalAlerta = document.getElementById("modal-alerta-intentos");
+    if (!modalAlerta) {
+      modalAlerta = document.createElement("div");
+      modalAlerta.id = "modal-alerta-intentos";
+      modalAlerta.className = "modal-alerta-overlay";
+      document.body.appendChild(modalAlerta);
+
+      // Agregar estilos si no existen
+      if (!document.getElementById("modal-alerta-styles")) {
+        const style = document.createElement("style");
+        style.id = "modal-alerta-styles";
+        style.textContent = `
+          .modal-alerta-overlay {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 10002;
+            animation: fadeInAlerta 0.3s ease;
+            backdrop-filter: blur(4px);
+          }
+
+          @keyframes fadeInAlerta {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+
+          .modal-alerta-content {
+            background: #ffffff;
+            padding: 2rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUpAlerta 0.3s ease;
+          }
+
+          @keyframes slideUpAlerta {
+            from {
+              transform: translateY(30px);
+              opacity: 0;
+            }
+            to {
+              transform: translateY(0);
+              opacity: 1;
+            }
+          }
+
+          .modal-alerta-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+          }
+
+          .modal-alerta-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+          }
+
+          .modal-alerta-icon.warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+          }
+
+          .modal-alerta-icon.error {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          }
+
+          .modal-alerta-icon.info {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+          }
+
+          .modal-alerta-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+          }
+
+          .modal-alerta-message {
+            color: #4b5563;
+            font-size: 1rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+          }
+
+          .modal-alerta-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+          }
+
+          .btn-modal-alerta {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+          }
+
+          .btn-modal-alerta-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+          }
+
+          .btn-modal-alerta-primary:hover {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+          }
+        `;
+        document.head.appendChild(style);
+      }
+    }
+
+    // Configurar icono según el tipo
+    const iconos = {
+      warning: { icon: "fa-exclamation-triangle", clase: "warning" },
+      error: { icon: "fa-xmark-circle", clase: "error" },
+      info: { icon: "fa-info-circle", clase: "info" }
+    };
+
+    const config = iconos[tipo] || iconos.info;
+
+    // Actualizar contenido del modal
+    modalAlerta.innerHTML = `
+      <div class="modal-alerta-content">
+        <div class="modal-alerta-header">
+          <div class="modal-alerta-icon ${config.clase}">
+            <i class="fa-solid ${config.icon}"></i>
+          </div>
+          <h3 class="modal-alerta-title">${titulo}</h3>
+        </div>
+        <p class="modal-alerta-message">${mensaje}</p>
+        <div class="modal-alerta-actions">
+          <button class="btn-modal-alerta btn-modal-alerta-primary" id="btnCerrarModalAlerta">
+            Aceptar
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Mostrar modal
+    modalAlerta.style.display = "flex";
+
+    // Cerrar modal al hacer clic en el botón
+    const btnCerrar = document.getElementById("btnCerrarModalAlerta");
+    btnCerrar.onclick = () => {
+      modalAlerta.style.display = "none";
+    };
+
+    // Cerrar modal al hacer clic fuera del contenido
+    modalAlerta.onclick = (e) => {
+      if (e.target === modalAlerta) {
+        modalAlerta.style.display = "none";
+      }
+    };
+  };
+
+  // Función para crear y mostrar el modal de editar cita
+  const mostrarModalEditarCita = async function(citaId) {
     try {
-      const res = await fetch(`/api/citas/${id}`, {
+      // Obtener información de la cita
+      const email = sessionStorage.getItem("userEmail");
+      const res = await fetch(`http://localhost:5000/api/citas?email=${email}`);
+      if (!res.ok) throw new Error('Error al obtener información de la cita');
+      const citas = await res.json();
+      const cita = citas.find(c => c._id === citaId);
+      
+      if (!cita) {
+        alert('No se encontró la información de la cita');
+        return;
+      }
+
+      // Verificar límite de intentos de edición
+      const intentosEdicion = cita.intentosEdicion || 0;
+      if (intentosEdicion >= 2) {
+        mostrarModalAlerta(
+          "Límite de intentos alcanzado",
+          "Ya no tienes más intento de cambios en tu cita",
+          "error"
+        );
+        return;
+      }
+
+      // Formatear fecha actual para el input (YYYY-MM-DD)
+      const fechaActual = cita.fechaCita 
+        ? new Date(cita.fechaCita).toISOString().split('T')[0]
+        : '';
+      const horarioActual = cita.horario || '';
+
+      // Crear el modal si no existe
+      let modal = document.getElementById("modal-editar-cita");
+      if (!modal) {
+        modal = document.createElement("div");
+        modal.id = "modal-editar-cita";
+        modal.className = "modal-editar-cita-overlay";
+        document.body.appendChild(modal);
+
+        // Agregar estilos si no existen
+        if (!document.getElementById("modal-editar-cita-styles")) {
+          const style = document.createElement("style");
+          style.id = "modal-editar-cita-styles";
+          style.textContent = `
+            .modal-editar-cita-overlay {
+              position: fixed;
+              inset: 0;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: rgba(0, 0, 0, 0.6);
+              z-index: 10000;
+              animation: fadeInEditCita 0.3s ease;
+              backdrop-filter: blur(4px);
+            }
+
+            .modal-editar-cita-overlay.hidden {
+              display: none;
+            }
+
+            @keyframes fadeInEditCita {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+
+            .modal-editar-cita-content {
+              background: #ffffff;
+              padding: 2.5rem;
+              border-radius: 16px;
+              width: 90%;
+              max-width: 480px;
+              box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+              animation: slideUpEditCita 0.3s ease;
+            }
+
+            @keyframes slideUpEditCita {
+              from {
+                transform: translateY(30px);
+                opacity: 0;
+              }
+              to {
+                transform: translateY(0);
+                opacity: 1;
+              }
+            }
+
+            .modal-editar-cita-header {
+              display: flex;
+              align-items: center;
+              gap: 1rem;
+              margin-bottom: 1.5rem;
+              padding-bottom: 1rem;
+              border-bottom: 2px solid #e5e7eb;
+            }
+
+            .modal-editar-cita-icon {
+              width: 50px;
+              height: 50px;
+              background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+              border-radius: 12px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            }
+
+            .modal-editar-cita-icon i {
+              font-size: 1.5rem;
+              color: #ffffff;
+            }
+
+            .modal-editar-cita-title {
+              font-size: 1.5rem;
+              font-weight: 700;
+              color: #1f2937;
+              margin: 0;
+            }
+
+            .modal-editar-cita-form {
+              display: flex;
+              flex-direction: column;
+              gap: 1.25rem;
+            }
+
+            .form-group-edit-cita {
+              display: flex;
+              flex-direction: column;
+              gap: 0.5rem;
+            }
+
+            .form-group-edit-cita label {
+              font-size: 0.95rem;
+              font-weight: 600;
+              color: #374151;
+            }
+
+            .form-group-edit-cita input {
+              padding: 0.75rem;
+              border: 2px solid #e5e7eb;
+              border-radius: 8px;
+              font-size: 0.95rem;
+              font-family: inherit;
+              transition: all 0.2s ease;
+              background: #ffffff;
+            }
+
+            .form-group-edit-cita input:focus {
+              outline: none;
+              border-color: #3b82f6;
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+            .form-group-edit-cita select {
+              padding: 0.75rem;
+              border: 2px solid #e5e7eb;
+              border-radius: 8px;
+              font-size: 0.95rem;
+              font-family: inherit;
+              transition: all 0.2s ease;
+              background: #ffffff;
+              cursor: pointer;
+              appearance: none;
+              background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23374151' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+              background-repeat: no-repeat;
+              background-position: right 0.75rem center;
+              background-size: 12px;
+              padding-right: 2.5rem;
+            }
+
+            .form-group-edit-cita select:focus {
+              outline: none;
+              border-color: #3b82f6;
+              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+            .form-group-edit-cita select:hover {
+              border-color: #d1d5db;
+            }
+
+            .modal-editar-cita-actions {
+              display: flex;
+              gap: 1rem;
+              justify-content: flex-end;
+              margin-top: 0.5rem;
+            }
+
+            .btn-edit-cita-cancel,
+            .btn-edit-cita-save {
+              padding: 0.75rem 1.5rem;
+              border: none;
+              border-radius: 8px;
+              font-size: 0.95rem;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.2s ease;
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+            }
+
+            .btn-edit-cita-cancel {
+              background: #f3f4f6;
+              color: #374151;
+            }
+
+            .btn-edit-cita-cancel:hover {
+              background: #e5e7eb;
+              transform: translateY(-1px);
+              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+            .btn-edit-cita-save {
+              background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+              color: #ffffff;
+              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            }
+
+            .btn-edit-cita-save:hover {
+              background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+              transform: translateY(-1px);
+              box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+            }
+
+            .btn-edit-cita-save:disabled {
+              background: #9ca3af;
+              cursor: not-allowed;
+              transform: none;
+              box-shadow: none;
+            }
+
+            .btn-edit-cita-cancel:active,
+            .btn-edit-cita-save:active {
+              transform: translateY(0);
+            }
+
+            .modal-editar-cita-error {
+              background: #fef2f2;
+              border: 1px solid #fecaca;
+              color: #991b1b;
+              padding: 0.75rem;
+              border-radius: 8px;
+              font-size: 0.9rem;
+              display: none;
+              margin-bottom: 1rem;
+            }
+
+            .modal-editar-cita-error.show {
+              display: block;
+            }
+
+            @keyframes slideInRight {
+              from {
+                transform: translateX(100%);
+                opacity: 0;
+              }
+              to {
+                transform: translateX(0);
+                opacity: 1;
+              }
+            }
+
+            @keyframes slideOutRight {
+              from {
+                transform: translateX(0);
+                opacity: 1;
+              }
+              to {
+                transform: translateX(100%);
+                opacity: 0;
+              }
+            }
+
+            @media (max-width: 480px) {
+              .modal-editar-cita-content {
+                padding: 2rem 1.5rem;
+              }
+
+              .modal-editar-cita-actions {
+                flex-direction: column;
+              }
+
+              .btn-edit-cita-cancel,
+              .btn-edit-cita-save {
+                width: 100%;
+                justify-content: center;
+              }
+            }
+          `;
+          document.head.appendChild(style);
+        }
+      }
+
+      // Actualizar contenido del modal con datos de la cita
+      modal.innerHTML = `
+        <div class="modal-editar-cita-content">
+          <div class="modal-editar-cita-header">
+            <div class="modal-editar-cita-icon">
+              <i class="fa-solid fa-calendar-pen"></i>
+            </div>
+            <h3 class="modal-editar-cita-title">Editar Cita</h3>
+          </div>
+          <div class="modal-editar-cita-error" id="errorEditCita"></div>
+          <form class="modal-editar-cita-form" id="formEditarCita">
+            <div class="form-group-edit-cita">
+              <label for="fechaCitaEdit">
+                <i class="fa-solid fa-calendar-days"></i> Nueva Fecha
+              </label>
+              <input 
+                type="date" 
+                id="fechaCitaEdit" 
+                name="fechaCita" 
+                value="${fechaActual}"
+                required
+                min="${new Date().toISOString().split('T')[0]}"
+              >
+            </div>
+            <div class="form-group-edit-cita">
+              <label for="horarioCitaEdit">
+                <i class="fa-solid fa-clock"></i> Nuevo Horario
+              </label>
+              <select 
+                id="horarioCitaEdit" 
+                name="horario" 
+                required
+              >
+                <option value="">Seleccione un horario</option>
+                <option value="8:00 - 8:30 am" ${horarioActual === "8:00 - 8:30 am" ? "selected" : ""}>8:00 - 8:30 am</option>
+                <option value="8:30 - 9:00 am" ${horarioActual === "8:30 - 9:00 am" ? "selected" : ""}>8:30 - 9:00 am</option>
+                <option value="9:00 - 9:30 am" ${horarioActual === "9:00 - 9:30 am" ? "selected" : ""}>9:00 - 9:30 am</option>
+                <option value="9:30 - 10:00 am" ${horarioActual === "9:30 - 10:00 am" ? "selected" : ""}>9:30 - 10:00 am</option>
+                <option value="10:00 - 10:30 am" ${horarioActual === "10:00 - 10:30 am" ? "selected" : ""}>10:00 - 10:30 am</option>
+                <option value="10:30 - 11:00 am" ${horarioActual === "10:30 - 11:00 am" ? "selected" : ""}>10:30 - 11:00 am</option>
+                <option value="11:00 - 11:30 am" ${horarioActual === "11:00 - 11:30 am" ? "selected" : ""}>11:00 - 11:30 am</option>
+                <option value="11:30 - 12:00 pm" ${horarioActual === "11:30 - 12:00 pm" ? "selected" : ""}>11:30 - 12:00 pm</option>
+                <option value="12:00 - 12:30 pm" ${horarioActual === "12:00 - 12:30 pm" ? "selected" : ""}>12:00 - 12:30 pm</option>
+                <option value="12:30 - 1:00 pm" ${horarioActual === "12:30 - 1:00 pm" ? "selected" : ""}>12:30 - 1:00 pm</option>
+                <option value="1:00 - 1:30 pm" ${horarioActual === "1:00 - 1:30 pm" ? "selected" : ""}>1:00 - 1:30 pm</option>
+                <option value="1:30 - 2:00 pm" ${horarioActual === "1:30 - 2:00 pm" ? "selected" : ""}>1:30 - 2:00 pm</option>
+                <option value="2:00 - 2:30 pm" ${horarioActual === "2:00 - 2:30 pm" ? "selected" : ""}>2:00 - 2:30 pm</option>
+                <option value="2:30 - 3:00 pm" ${horarioActual === "2:30 - 3:00 pm" ? "selected" : ""}>2:30 - 3:00 pm</option>
+                <option value="3:00 - 3:30 pm" ${horarioActual === "3:00 - 3:30 pm" ? "selected" : ""}>3:00 - 3:30 pm</option>
+                <option value="3:30 - 4:00 pm" ${horarioActual === "3:30 - 4:00 pm" ? "selected" : ""}>3:30 - 4:00 pm</option>
+                <option value="4:00 - 4:30 pm" ${horarioActual === "4:00 - 4:30 pm" ? "selected" : ""}>4:00 - 4:30 pm</option>
+                <option value="4:30 - 5:00 pm" ${horarioActual === "4:30 - 5:00 pm" ? "selected" : ""}>4:30 - 5:00 pm</option>
+                <option value="5:00 - 5:30 pm" ${horarioActual === "5:00 - 5:30 pm" ? "selected" : ""}>5:00 - 5:30 pm</option>
+                <option value="5:30 - 6:00 pm" ${horarioActual === "5:30 - 6:00 pm" ? "selected" : ""}>5:30 - 6:00 pm</option>
+              </select>
+            </div>
+            <div class="modal-editar-cita-actions">
+              <button type="button" class="btn-edit-cita-cancel" id="btnCancelEditCita">
+                <i class="fa-solid fa-xmark"></i> Cancelar
+              </button>
+              <button type="submit" class="btn-edit-cita-save" id="btnSaveEditCita">
+                <i class="fa-solid fa-check"></i> Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      `;
+
+      // Mostrar el modal
+      modal.classList.remove("hidden");
+
+      // Event listeners
+      const form = document.getElementById("formEditarCita");
+      const btnCancel = document.getElementById("btnCancelEditCita");
+      const btnSave = document.getElementById("btnSaveEditCita");
+      const errorDiv = document.getElementById("errorEditCita");
+
+      const cerrarModal = () => {
+        modal.classList.add("hidden");
+      };
+
+      btnCancel.addEventListener("click", cerrarModal);
+
+      // Cerrar al hacer clic fuera del modal
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          cerrarModal();
+        }
+      });
+
+      // Cerrar con ESC
+      const handleEsc = (e) => {
+        if (e.key === "Escape" && !modal.classList.contains("hidden")) {
+          cerrarModal();
+          document.removeEventListener("keydown", handleEsc);
+        }
+      };
+      document.addEventListener("keydown", handleEsc);
+
+      // Función para mostrar notificación de horario ocupado
+      const mostrarNotificacionHorarioOcupado = function(mensaje, conflicto) {
+        // Eliminar notificación anterior si existe
+        const notifAnterior = document.getElementById("notification-horario-ocupado-edit");
+        if (notifAnterior) notifAnterior.remove();
+
+        // Crear notificación
+        const notification = document.createElement("div");
+        notification.id = "notification-horario-ocupado-edit";
+        document.body.appendChild(notification);
+
+        // Agregar estilos si no existen
+        if (!document.getElementById("notification-horario-ocupado-edit-styles")) {
+          const style = document.createElement("style");
+          style.id = "notification-horario-ocupado-edit-styles";
+          style.textContent = `
+            #notification-horario-ocupado-edit {
+              position: fixed;
+              top: 20px;
+              right: 20px;
+              background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+              color: white;
+              padding: 1.25rem 1.5rem;
+              border-radius: 12px;
+              box-shadow: 0 10px 30px rgba(245, 158, 11, 0.4);
+              z-index: 10001;
+              max-width: 420px;
+              animation: slideInRightNotificationEdit 0.4s ease;
+              display: flex;
+              align-items: flex-start;
+              gap: 1rem;
+            }
+
+            @keyframes slideInRightNotificationEdit {
+              from {
+                transform: translateX(120%);
+                opacity: 0;
+              }
+              to {
+                transform: translateX(0);
+                opacity: 1;
+              }
+            }
+
+            @keyframes slideOutRightNotificationEdit {
+              from {
+                transform: translateX(0);
+                opacity: 1;
+              }
+              to {
+                transform: translateX(120%);
+                opacity: 0;
+              }
+            }
+
+            #notification-horario-ocupado-edit .notification-icon {
+              width: 40px;
+              height: 40px;
+              background: rgba(255, 255, 255, 0.2);
+              border-radius: 50%;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+            }
+
+            #notification-horario-ocupado-edit .notification-icon i {
+              font-size: 1.25rem;
+              color: white;
+            }
+
+            #notification-horario-ocupado-edit .notification-content {
+              flex: 1;
+            }
+
+            #notification-horario-ocupado-edit .notification-title {
+              font-size: 1.1rem;
+              font-weight: 700;
+              margin: 0 0 0.5rem 0;
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+            }
+
+            #notification-horario-ocupado-edit .notification-message {
+              font-size: 0.95rem;
+              line-height: 1.5;
+              margin: 0;
+              opacity: 0.95;
+            }
+
+            #notification-horario-ocupado-edit .notification-close {
+              background: rgba(255, 255, 255, 0.2);
+              border: none;
+              color: white;
+              width: 28px;
+              height: 28px;
+              border-radius: 50%;
+              cursor: pointer;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+              transition: background 0.2s;
+            }
+
+            #notification-horario-ocupado-edit .notification-close:hover {
+              background: rgba(255, 255, 255, 0.3);
+            }
+
+            @media (max-width: 480px) {
+              #notification-horario-ocupado-edit {
+                right: 10px;
+                left: 10px;
+                max-width: none;
+              }
+            }
+          `;
+          document.head.appendChild(style);
+        }
+
+        notification.innerHTML = `
+          <div class="notification-icon">
+            <i class="fa-solid fa-clock"></i>
+          </div>
+          <div class="notification-content">
+            <div class="notification-title">
+              <i class="fa-solid fa-exclamation-triangle"></i>
+              Horario Ocupado
+            </div>
+            <div class="notification-message">${mensaje}</div>
+          </div>
+          <button class="notification-close" onclick="this.closest('#notification-horario-ocupado-edit').remove()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        `;
+
+        // Auto-ocultar después de 6 segundos
+        setTimeout(() => {
+          notification.style.animation = "slideOutRightNotificationEdit 0.4s ease";
+          setTimeout(() => notification.remove(), 400);
+        }, 6000);
+      };
+
+      // Manejar envío del formulario
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        
+        const nuevaFecha = document.getElementById("fechaCitaEdit").value;
+        const nuevoHorario = document.getElementById("horarioCitaEdit").value;
+
+        if (!nuevaFecha || !nuevoHorario) {
+          errorDiv.textContent = "Por favor complete todos los campos";
+          errorDiv.classList.add("show");
+          return;
+        }
+
+        // Validar que la fecha no sea en el pasado
+        const fechaSeleccionada = new Date(nuevaFecha);
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        
+        if (fechaSeleccionada < hoy) {
+          errorDiv.textContent = "La fecha no puede ser anterior a hoy";
+          errorDiv.classList.add("show");
+          return;
+        }
+
+        // Deshabilitar botón mientras se procesa
+        btnSave.disabled = true;
+        btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Guardando...';
+        errorDiv.classList.remove("show");
+
+        try {
+          const res = await fetch(`/api/citas/${citaId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fechaCita: nuevaFecha, horario: nuevoHorario })
       });
-      if (!res.ok) throw new Error('No se pudo editar la cita');
-      alert('Cita actualizada. El administrador fue notificado.');
-      await recargarCitasConPagos();
-    } catch (e) {
-      alert(e.message);
+          
+          const data = await res.json();
+          
+          // Manejar error de conflicto (409)
+          if (res.status === 409) {
+            // Verificar si es el error específico de cita de misma especialidad en la misma fecha
+            if (data.tipoError === "cita_misma_especialidad_fecha") {
+              cerrarModal();
+              mostrarModalAlerta(
+                "Cita duplicada",
+                "Ya tienes una cita de esta especialidad para esta fecha",
+                "error"
+              );
+              btnSave.disabled = false;
+              btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Guardar Cambios';
+              return;
+            }
+            // Si es otro tipo de conflicto (horario ocupado), mostrar notificación
+            mostrarNotificacionHorarioOcupado(data.message || "El horario seleccionado ya está ocupado.", data.conflicto);
+            btnSave.disabled = false;
+            btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Guardar Cambios';
+            return;
+          }
+          
+          // Verificar si hay error de límite de intentos (403)
+          if (res.status === 403 && data.limiteAlcanzado) {
+            cerrarModal();
+            mostrarModalAlerta(
+              "Límite de intentos alcanzado",
+              "Ya no tienes más intento de cambios en tu cita",
+              "error"
+            );
+            await recargarCitasConPagos();
+            return;
+          }
+          
+          if (!res.ok) {
+            throw new Error(data.message || data.error || 'No se pudo editar la cita');
+          }
+
+          // Obtener información de intentos de la respuesta
+          const intentosEdicion = data.intentosEdicion || 0;
+          const intentosRestantes = data.intentosRestantes || 0;
+
+          // Mostrar mensaje de éxito
+          btnSave.innerHTML = '<i class="fa-solid fa-check"></i> ¡Guardado!';
+          btnSave.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+          
+          setTimeout(async () => {
+            cerrarModal();
+            
+            // Mostrar modal según el número de intentos
+            if (intentosEdicion === 1) {
+              // Primer intento: mostrar advertencia
+              mostrarModalAlerta(
+                "Advertencia",
+                "Tienes 1 intento más para editar tu cita, asegúrate de estar conforme",
+                "warning"
+              );
+            } else if (intentosEdicion >= 2) {
+              // Segundo intento: mostrar que ya no hay más intentos
+              mostrarModalAlerta(
+                "Límite de intentos alcanzado",
+                "Ya no tienes más intento de cambios en tu cita",
+                "error"
+              );
+            }
+
+            await recargarCitasConPagos();
+          }, 800);
+
+        } catch (error) {
+          errorDiv.textContent = error.message || 'Error al actualizar la cita';
+          errorDiv.classList.add("show");
+          btnSave.disabled = false;
+          btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Guardar Cambios';
+        }
+      });
+
+    } catch (error) {
+      alert('Error al cargar la información de la cita: ' + error.message);
     }
+  };
+
+  window.editarCitaPrompt = async (id) => {
+    await mostrarModalEditarCita(id);
   };
 
   window.pagarCita = async (id) => {
@@ -345,7 +1492,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const especialidad = document.getElementById("especialidad")?.value;
     const fechaCita = document.getElementById("fechaCita")?.value;
     const horario = document.getElementById("horario")?.value;
-    const motivoCita = document.getElementById("motivoCita")?.value;
+    let motivoCita = document.getElementById("motivoCita")?.value;
+    
+    // Verificar si hay un doctor seleccionado desde el apartado de doctores
+    const doctorSeleccionadoId = sessionStorage.getItem("doctorSeleccionadoId");
+    
+    // Si hay un doctor seleccionado, forzar el motivoCita a "Consulta Médica"
+    if (doctorSeleccionadoId) {
+      motivoCita = "Consulta Médica";
+      console.log("🔒 Motivo de cita forzado a 'Consulta Médica' porque hay un doctor seleccionado");
+    }
 
     console.log("Datos enviados al backend:", {
       email,
@@ -368,7 +1524,17 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al guardar la cita");
+      if (!res.ok) {
+        // Si hay un error de cita de la misma especialidad en la misma fecha
+        if (res.status === 409 && data.tipoError === "cita_misma_especialidad_fecha") {
+          throw new Error("Ya tienes una cita registrada para esta fecha");
+        }
+        // Si hay un conflicto de horario (status 409), mostrar mensaje personalizado
+        if (res.status === 409 || data.conflicto) {
+          throw new Error("Ya hay una cita reservada en este horario, por favor escoja una nuevo");
+        }
+        throw new Error(data.error || data.message || "Error al guardar la cita");
+      }
 
       console.log("Cita registrada correctamente:", data);
 
@@ -422,6 +1588,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const precioEspecialidadDiv = document.getElementById("precioEspecialidad");
     const montoEspecialidadSpan = document.getElementById("montoEspecialidad");
     const especialidadGroup = especialidadSelect?.closest(".form-group");
+    const motivoCitaSelect = document.getElementById("motivoCita");
 
     if (fechaCita) {
       const today = new Date().toISOString().split("T")[0];
@@ -500,6 +1667,40 @@ document.addEventListener("DOMContentLoaded", () => {
             montoEspecialidadSpan.textContent = `S/ ${precio.toFixed(2)}`;
             precioEspecialidadDiv.style.display = "block";
           }
+          
+          // Fijar el motivo de la cita a "Consulta Médica" y deshabilitar el campo completo
+          if (motivoCitaSelect) {
+            // Deshabilitar la opción "Análisis"
+            const opcionAnalisis = Array.from(motivoCitaSelect.options).find(
+              option => option.value === "Análisis"
+            );
+            if (opcionAnalisis) {
+              opcionAnalisis.disabled = true;
+              opcionAnalisis.style.color = "#9ca3af";
+              console.log("🔒 Opción 'Análisis' deshabilitada porque se reserva desde el apartado de doctores");
+            }
+            
+            // Fijar el valor a "Consulta Médica"
+            motivoCitaSelect.value = "Consulta Médica";
+            
+            // Deshabilitar el campo completo para que no se pueda elegir
+            motivoCitaSelect.disabled = true;
+            motivoCitaSelect.style.backgroundColor = "#f3f4f6";
+            motivoCitaSelect.style.cursor = "not-allowed";
+            motivoCitaSelect.setAttribute("readonly", "readonly");
+            
+            console.log("🔒 Campo motivoCita deshabilitado. Solo muestra 'Consulta Médica'");
+            
+            // Agregar un mensaje informativo si no existe
+            let mensajeMotivo = motivoCitaGroup?.querySelector(".motivo-info-message");
+            if (!mensajeMotivo && motivoCitaGroup) {
+              mensajeMotivo = document.createElement("div");
+              mensajeMotivo.className = "motivo-info-message";
+              mensajeMotivo.style.cssText = "margin-top: 0.5rem; padding: 0.75rem; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 6px; font-size: 0.9rem; color: #92400e;";
+              mensajeMotivo.innerHTML = `<i class="fa-solid fa-info-circle" style="margin-right: 0.5rem;"></i>El motivo de la cita está fijado en <strong>Consulta Médica</strong> y la opción <strong>Análisis</strong> está desactivada porque estás reservando desde el apartado de doctores.`;
+              motivoCitaGroup.appendChild(mensajeMotivo);
+            }
+          }
         } else {
           console.error("❌ Error en la respuesta del servidor:", response.status);
         }
@@ -521,6 +1722,16 @@ document.addEventListener("DOMContentLoaded", () => {
         montoEspecialidadSpan.textContent = `S/ ${precio.toFixed(2)}`;
         precioEspecialidadDiv.style.display = "block";
       }
+    }
+    
+    // Si NO hay doctor seleccionado, asegurarse de que todas las opciones de motivoCita estén habilitadas
+    if (!doctorSeleccionadoId && motivoCitaSelect) {
+      Array.from(motivoCitaSelect.options).forEach(option => {
+        if (option.value === "Análisis") {
+          option.disabled = false;
+          option.style.color = "";
+        }
+      });
     }
 
     // Mostrar precio cuando se selecciona una especialidad (solo si no está deshabilitado)
@@ -2241,6 +3452,161 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     }
+  };
+
+  // ============================================================
+  // 🔹 VISTA DE HISTORIAL MÉDICO
+  // ============================================================
+  const initHistorialView = async () => {
+    const email = sessionStorage.getItem("userEmail");
+    if (!email) {
+      console.error("No se encontró el email del usuario");
+      mostrarEstadoVacioHistorial();
+      return;
+    }
+
+    // Mostrar estado de carga
+    mostrarEstadoCargaHistorial();
+
+    try {
+      // Obtener historial médico completo
+      const res = await fetch(`http://localhost:5000/api/pacientes/historial?email=${encodeURIComponent(email)}`);
+      if (!res.ok) throw new Error("Error al obtener historial médico");
+      
+      const data = await res.json();
+      const { historial, resumen } = data;
+
+      if (!historial || historial.length === 0) {
+        mostrarEstadoVacioHistorial();
+        return;
+      }
+
+      // Renderizar historial
+      renderizarHistorial(historial);
+      
+    } catch (err) {
+      console.error("Error cargando historial médico:", err);
+      mostrarEstadoVacioHistorial();
+    }
+  };
+
+  const mostrarEstadoCargaHistorial = () => {
+    const loadingEl = document.getElementById("loading-historial");
+    const emptyEl = document.getElementById("empty-historial");
+    const contentEl = document.getElementById("historial-content");
+    if (loadingEl) loadingEl.style.display = "block";
+    if (emptyEl) emptyEl.style.display = "none";
+    if (contentEl) contentEl.style.display = "none";
+  };
+
+  const mostrarEstadoVacioHistorial = () => {
+    const loadingEl = document.getElementById("loading-historial");
+    const emptyEl = document.getElementById("empty-historial");
+    const contentEl = document.getElementById("historial-content");
+    if (loadingEl) loadingEl.style.display = "none";
+    if (emptyEl) emptyEl.style.display = "block";
+    if (contentEl) contentEl.style.display = "none";
+  };
+
+  const renderizarHistorial = (historial) => {
+    const loadingEl = document.getElementById("loading-historial");
+    const emptyEl = document.getElementById("empty-historial");
+    const contentEl = document.getElementById("historial-content");
+    if (loadingEl) loadingEl.style.display = "none";
+    if (emptyEl) emptyEl.style.display = "none";
+    if (contentEl) contentEl.style.display = "block";
+
+    const timelineEl = document.getElementById("historial-timeline");
+    if (!timelineEl) return;
+
+    timelineEl.innerHTML = "";
+
+    historial.forEach((evento) => {
+      const item = document.createElement("div");
+      item.className = "timeline-item";
+
+      // Determinar ícono según el tipo de evento
+      let icono = "fa-calendar-check";
+      if (evento.tipo === "diagnostico") {
+        icono = "fa-user-doctor";
+      } else if (evento.tipo === "resultado") {
+        icono = "fa-vials";
+      } else if (evento.tipo === "cita") {
+        if (evento.motivoCita && evento.motivoCita.includes("Análisis")) {
+          icono = "fa-flask";
+        } else {
+          icono = "fa-calendar-check";
+        }
+      }
+
+      // Formatear fecha
+      const fecha = new Date(evento.fecha);
+      const fechaFormateada = fecha.toLocaleDateString('es-ES', { 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric' 
+      });
+
+      // Construir contenido según el tipo
+      let contenidoHTML = "";
+
+      if (evento.tipo === "diagnostico") {
+        // Mostrar información del diagnóstico
+        contenidoHTML = `
+          <h3>${evento.titulo}</h3>
+          <p class="muted">${evento.subtitulo}</p>
+          <p>${evento.descripcion}</p>
+          ${evento.sintomas ? `<p><strong>Síntomas:</strong> ${evento.sintomas}</p>` : ''}
+          ${evento.observaciones ? `<p><strong>Observaciones:</strong> ${evento.observaciones}</p>` : ''}
+          ${evento.tieneReceta && evento.receta.length > 0 ? `
+            <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e0e0e0;">
+              <strong>Medicación prescrita:</strong>
+              <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                ${evento.receta.map(med => `
+                  <li>${med.nombre} - ${med.dosis} (${med.frecuencia}) por ${med.duracion}</li>
+                `).join('')}
+              </ul>
+            </div>
+          ` : ''}
+        `;
+      } else if (evento.tipo === "resultado") {
+        // Mostrar información del resultado
+        const urlResultado = evento.archivoPDF ? `http://localhost:5000${evento.archivoPDF}` : '';
+        contenidoHTML = `
+          <h3>${evento.titulo}</h3>
+          <p class="muted">${evento.subtitulo}</p>
+          <p>${evento.descripcion}</p>
+          ${evento.observaciones ? `<p><strong>Observaciones:</strong> ${evento.observaciones}</p>` : ''}
+          ${urlResultado ? `
+            <a href="/ver-resultado?id=${evento.id}" style="display: inline-block; margin-top: 0.5rem; color: #007bff; text-decoration: none;">
+              <i class="fa-solid fa-file-pdf"></i> Ver resultado completo
+            </a>
+          ` : ''}
+        `;
+      } else if (evento.tipo === "cita") {
+        // Mostrar información de la cita
+        const estadoClass = evento.estado === "completada" ? "success" : 
+                           evento.estado === "cancelada" ? "danger" : 
+                           evento.estado === "confirmada" ? "primary" : "warning";
+        contenidoHTML = `
+          <h3>${evento.titulo}</h3>
+          <p class="muted">${evento.subtitulo}</p>
+          <p>${evento.descripcion}</p>
+          <span class="badge badge-${estadoClass}" style="display: inline-block; margin-top: 0.5rem; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.875rem; text-transform: capitalize;">
+            ${evento.estado}
+          </span>
+        `;
+      }
+
+      item.innerHTML = `
+        <div class="timeline-icon"><i class="fa-solid ${icono}"></i></div>
+        <div class="timeline-content">
+          ${contenidoHTML}
+        </div>
+      `;
+
+      timelineEl.appendChild(item);
+    });
   };
 
   // ============================================================

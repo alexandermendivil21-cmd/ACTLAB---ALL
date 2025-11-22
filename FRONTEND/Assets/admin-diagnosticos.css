@@ -214,6 +214,7 @@
   align-items: center;
 }
 
+.btn-historial,
 .btn-edit,
 .btn-delete,
 .btn-view {
@@ -228,6 +229,16 @@
   justify-content: center;
   width: 32px;
   height: 32px;
+}
+
+.btn-historial {
+  color: #10b981;
+}
+
+.btn-historial:hover {
+  background-color: #d1fae5;
+  color: #059669;
+  transform: scale(1.1);
 }
 
 .btn-edit {
@@ -260,6 +271,7 @@
   transform: scale(1.1);
 }
 
+.btn-historial i,
 .btn-edit i,
 .btn-delete i,
 .btn-view i {

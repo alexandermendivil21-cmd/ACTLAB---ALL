@@ -82,7 +82,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error || "Error al registrar la cita");
+      if (!res.ok) {
+        // Si hay un error de cita de la misma especialidad en la misma fecha
+        if (res.status === 409 && data.tipoError === "cita_misma_especialidad_fecha") {
+          throw new Error("Ya tienes una cita registrada para esta fecha");
+        }
+        throw new Error(data.error || data.message || "Error al registrar la cita");
+      }
 
       // Guardar el ID de la cita en sessionStorage
       if (data.cita && data.cita._id) {
@@ -106,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     } catch (error) {
       console.error("Error al solicitar cita:", error);
-      showModal(false, "Error", "No se pudo registrar la cita. Inténtelo nuevamente.");
+      showModal(false, "Error", error.message || "No se pudo registrar la cita. Inténtelo nuevamente.");
     }
   };
 

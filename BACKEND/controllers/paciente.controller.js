@@ -4,6 +4,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import bcryptjs from "bcryptjs";
 import Usuario from "../models/Usuario.js";
+import Cita from "../models/Cita.js";
+import Diagnostico from "../models/Diagnostico.js";
+import Resultado from "../models/Resultado.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -312,6 +315,138 @@ export const getPacientesPorMes = async (req, res) => {
     console.error("Error al obtener pacientes por mes:", error);
     res.status(500).json({ 
       error: "Error al obtener pacientes por mes", 
+      detalle: error.message 
+    });
+  }
+};
+
+// --- Obtener historial médico completo de un paciente ---
+export const getHistorialMedico = async (req, res) => {
+  try {
+    const { email } = req.query;
+    const { id } = req.params;
+    
+    // Si se proporciona ID, obtener el email del paciente
+    let emailPaciente = email;
+    if (id && !email) {
+      const paciente = await Usuario.findById(id, { email: 1 });
+      if (!paciente) {
+        return res.status(404).json({ message: "Paciente no encontrado" });
+      }
+      emailPaciente = paciente.email;
+    }
+    
+    if (!emailPaciente) {
+      return res.status(400).json({ error: "Email o ID del paciente es requerido" });
+    }
+    
+    const emailLower = emailPaciente.toLowerCase();
+    
+    // Obtener citas del paciente (especialmente las completadas)
+    const citas = await Cita.find({ email: emailLower })
+      .sort({ fechaCita: -1 });
+    
+    // Obtener diagnósticos del paciente con información del médico
+    const diagnosticos = await Diagnostico.find({ email: emailLower })
+      .populate("idMedico", "nombres apellidos especialidad cargo")
+      .sort({ fechaDiagnostico: -1 });
+    
+    // Obtener resultados de exámenes del paciente
+    const resultados = await Resultado.find({ email: emailLower })
+      .sort({ fechaResultado: -1 });
+    
+    // Formatear el historial como una línea de tiempo unificada
+    const historial = [];
+    
+    // Agregar citas al historial
+    citas.forEach(cita => {
+      historial.push({
+        tipo: "cita",
+        id: cita._id,
+        fecha: cita.fechaCita,
+        titulo: `Cita - ${cita.motivoCita}`,
+        subtitulo: `${cita.especialidad} - ${new Date(cita.fechaCita).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} ${cita.horario}`,
+        descripcion: cita.motivoCita,
+        estado: cita.estado,
+        especialidad: cita.especialidad,
+        horario: cita.horario,
+        motivoCita: cita.motivoCita
+      });
+    });
+    
+    // Agregar diagnósticos al historial
+    diagnosticos.forEach(diagnostico => {
+      const medicoNombre = diagnostico.idMedico 
+        ? `${diagnostico.idMedico.nombres} ${diagnostico.idMedico.apellidos}`
+        : "Médico no disponible";
+      
+      historial.push({
+        tipo: "diagnostico",
+        id: diagnostico._id,
+        fecha: diagnostico.fechaDiagnostico,
+        titulo: "Consulta médica",
+        subtitulo: `${new Date(diagnostico.fechaDiagnostico).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} — ${diagnostico.idMedico?.especialidad || "Consulta"}`,
+        descripcion: `Atendido por ${medicoNombre}. ${diagnostico.diagnostico}`,
+        medico: medicoNombre,
+        especialidad: diagnostico.idMedico?.especialidad,
+        diagnostico: diagnostico.diagnostico,
+        sintomas: diagnostico.sintomas,
+        observaciones: diagnostico.observaciones,
+        receta: diagnostico.receta?.tieneReceta ? diagnostico.receta.medicamentos : [],
+        tieneReceta: diagnostico.receta?.tieneReceta || false
+      });
+    });
+    
+    // Agregar resultados de exámenes al historial
+    resultados.forEach(resultado => {
+      historial.push({
+        tipo: "resultado",
+        id: resultado._id,
+        fecha: resultado.fechaResultado,
+        titulo: "Resultado de análisis",
+        subtitulo: `${new Date(resultado.fechaResultado).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} — ${resultado.tipoExamen}`,
+        descripcion: resultado.observaciones || `Resultado de examen de ${resultado.tipoExamen} disponible.`,
+        tipoExamen: resultado.tipoExamen,
+        fechaExamen: resultado.fechaExamen,
+        observaciones: resultado.observaciones,
+        archivoPDF: resultado.archivoPDF,
+        nombreArchivo: resultado.nombreArchivo,
+        estado: resultado.estado
+      });
+    });
+    
+    // Ordenar historial por fecha (más reciente primero)
+    historial.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+    
+    // Obtener información del paciente para incluir en la respuesta
+    const paciente = await Usuario.findOne({ email: emailLower }, {
+      nombres: 1,
+      apellidos: 1,
+      edad: 1,
+      genero: 1,
+      email: 1
+    });
+    
+    res.status(200).json({
+      paciente: paciente ? {
+        nombres: paciente.nombres,
+        apellidos: paciente.apellidos,
+        edad: paciente.edad,
+        genero: paciente.genero,
+        email: paciente.email
+      } : null,
+      historial,
+      resumen: {
+        totalCitas: citas.length,
+        totalDiagnosticos: diagnosticos.length,
+        totalResultados: resultados.length,
+        totalEventos: historial.length
+      }
+    });
+  } catch (error) {
+    console.error("Error al obtener historial médico:", error);
+    res.status(500).json({ 
+      error: "Error al obtener historial médico", 
       detalle: error.message 
     });
   }

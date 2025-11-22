@@ -226,6 +226,8 @@ document.addEventListener("DOMContentLoaded", () => {
       inputInicio.className = "horario-inicio";
       inputInicio.dataset.index = index;
       inputInicio.value = horario.horaInicio || "09:00";
+      inputInicio.min = "08:00";
+      inputInicio.max = "18:00";
       inputInicio.required = true;
       inputInicio.style.cssText = "flex: 1; min-width: 120px; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 0.95rem; transition: all 0.2s;";
       
@@ -233,7 +235,9 @@ document.addEventListener("DOMContentLoaded", () => {
       inputFin.type = "time";
       inputFin.className = "horario-fin";
       inputFin.dataset.index = index;
-      inputFin.value = horario.horaFin || "17:00";
+      inputFin.value = horario.horaFin || "18:00";
+      inputFin.min = "08:00";
+      inputFin.max = "18:00";
       inputFin.required = true;
       inputFin.style.cssText = "flex: 1; min-width: 120px; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 6px; font-size: 0.95rem; transition: all 0.2s;";
       

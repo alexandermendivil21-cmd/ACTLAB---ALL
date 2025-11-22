@@ -6,13 +6,16 @@ import {
   updatePaciente,
   deletePaciente,
   getEstadisticasPacientes,
-  getPacientesPorMes
+  getPacientesPorMes,
+  getHistorialMedico
 } from "../controllers/paciente.controller.js";
 
 const router = express.Router();
 
 router.get("/pacientes/estadisticas", getEstadisticasPacientes); // Estadísticas de pacientes
 router.get("/pacientes/por-mes", getPacientesPorMes); // Pacientes nuevos por mes
+router.get("/pacientes/historial", getHistorialMedico); // Historial médico por email
+router.get("/pacientes/:id/historial", getHistorialMedico); // Historial médico por ID
 router.get("/pacientes", getPacientes);
 router.get("/pacientes/:id", getPacienteById);
 router.post("/pacientes", createPaciente);
