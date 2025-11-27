@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Gestión de Citas | SWALCACT</title>
+  <title>Gestión de Citas | ACT - LAB</title>
 
   <!-- Fuentes & Iconos -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -21,8 +21,8 @@
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <img src="../assets2/img/logo.jpg" alt="Logo SWALCACT" class="brand-logo" />
-        <span class="brand-text">SWALCACT</span>
+        <img src="../assets2/img/logo.jpg" alt="Logo ACT - LAB" class="brand-logo" />
+        <span class="brand-text">ACT - LAB</span>
       </div>
 
       <nav class="sidebar-nav">
@@ -151,7 +151,7 @@
 
           <div class="filter-group">
             <label for="filtroPaciente">Paciente:</label>
-            <input type="text" id="filtroPaciente" class="filter-input" placeholder="Buscar por nombre o correo..." />
+            <input type="text" id="filtroPaciente" class="filter-input" placeholder="Buscar por nombre o DNI..." />
           </div>
 
           <button class="btn-limpiar" id="btnLimpiarFiltros">
@@ -167,7 +167,7 @@
               <tr>
                 <th>Fecha y Hora</th>
                 <th>Paciente</th>
-                <th>Correo</th>
+                <th>DNI</th>
                 <th>Tipo de Examen</th>
                 <th>Motivo</th>
                 <th>Estado</th>
@@ -250,8 +250,8 @@
       </div>
       <form class="form-cita" id="formCita">
         <div class="form-group">
-          <label for="inputEmail">Email del Paciente:</label>
-          <input type="email" id="inputEmail" required placeholder="correo@ejemplo.com" />
+          <label for="inputDNI">DNI del Paciente:</label>
+          <input type="text" id="inputDNI" required placeholder="12345678" maxlength="8" pattern="[0-9]{8}" title="Ingrese un DNI válido de 8 dígitos" />
         </div>
         <div class="form-group">
           <label for="inputTipoExamen">Tipo de Examen:</label>
@@ -318,6 +318,75 @@
           <button type="submit" class="btn-guardar">Guardar</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE ÉXITO -->
+  <div class="modal-overlay hidden" id="modalExito">
+    <div class="modal-content modal-exito">
+      <div class="modal-exito-icon">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <h3 class="modal-exito-titulo">¡Cita Agendada Exitosamente!</h3>
+      <p class="modal-exito-mensaje" id="modalExitoMensaje">La cita ha sido registrada correctamente.</p>
+      <button type="button" class="btn-exito" id="btnCerrarModalExito">Aceptar</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE DETALLES DE CITA -->
+  <div class="modal-overlay hidden" id="modalDetallesCita">
+    <div class="modal-content modal-detalles">
+      <div class="modal-detalles-header">
+        <h3 class="modal-detalles-titulo">Detalles de la cita</h3>
+        <button type="button" class="btn-cerrar-detalles" id="btnCerrarModalDetalles">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-detalles-body">
+        <div class="detalle-item">
+          <span class="detalle-label"><i class="fa-solid fa-user"></i> Paciente:</span>
+          <span class="detalle-value" id="detallePaciente">-</span>
+        </div>
+        <div class="detalle-item">
+          <span class="detalle-label"><i class="fa-solid fa-id-card"></i> DNI:</span>
+          <span class="detalle-value" id="detalleDNI">-</span>
+        </div>
+        <div class="detalle-item">
+          <span class="detalle-label"><i class="fa-solid fa-stethoscope"></i> Tipo:</span>
+          <span class="detalle-value" id="detalleTipo">-</span>
+        </div>
+        <div class="detalle-item">
+          <span class="detalle-label"><i class="fa-solid fa-calendar"></i> Fecha:</span>
+          <span class="detalle-value" id="detalleFecha">-</span>
+        </div>
+        <div class="detalle-item">
+          <span class="detalle-label"><i class="fa-solid fa-clock"></i> Horario:</span>
+          <span class="detalle-value" id="detalleHorario">-</span>
+        </div>
+        <div class="detalle-item">
+          <span class="detalle-label"><i class="fa-solid fa-file-medical"></i> Motivo:</span>
+          <span class="detalle-value" id="detalleMotivo">-</span>
+        </div>
+        <div class="detalle-item">
+          <span class="detalle-label"><i class="fa-solid fa-info-circle"></i> Estado:</span>
+          <span class="detalle-value" id="detalleEstado">-</span>
+        </div>
+      </div>
+      <div class="modal-detalles-footer">
+        <button type="button" class="btn-aceptar-detalles" id="btnAceptarDetalles">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE ERROR -->
+  <div class="modal-overlay hidden" id="modalError">
+    <div class="modal-content modal-error">
+      <div class="modal-error-icon">
+        <i class="fa-solid fa-circle-exclamation"></i>
+      </div>
+      <h3 class="modal-error-titulo">Error</h3>
+      <p class="modal-error-mensaje" id="modalErrorMensaje">Ha ocurrido un error.</p>
+      <button type="button" class="btn-error" id="btnCerrarModalError">Aceptar</button>
     </div>
   </div>
 

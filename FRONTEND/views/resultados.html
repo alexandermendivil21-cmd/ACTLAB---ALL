@@ -9,13 +9,8 @@
   <div class="card resumen">
     <h3>Último análisis registrado</h3>
     <div class="resumen-datos">
-      <p><strong>Examen:</strong> Perfil lipídico</p>
-      <p><strong>Fecha:</strong> 20 Sep 2025</p>
-      <p><strong>Estado:</strong> 
-        <span class="chip normal" role="status" aria-live="polite">
-          ✅ Normal
-        </span>
-      </p>
+      <p><strong>Examen:</strong> -</p>
+      <p><strong>Fecha:</strong> -</p>
     </div>
   </div>
 
@@ -42,7 +37,7 @@
 
 <!-- Botón para volver al inicio -->
   <div class="actions-footer">
-    <button class="btn btn-outline" onclick="window.location.hash = '#overview'">
+    <button class="btn btn-outline" onclick="if(typeof window.loadSection === 'function') { window.loadSection('overview'); } else { window.location.hash = '#overview'; }">
       <i class="fa-solid fa-arrow-left"></i>
       Volver al Inicio
     </button>

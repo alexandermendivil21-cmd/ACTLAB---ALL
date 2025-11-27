@@ -286,17 +286,18 @@
 
     /* Último pago card */
     .ultimo-pago-card {
-      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-      border: 2px solid #3b82f6;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 16px;
       margin-bottom: 2rem;
       overflow: hidden;
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
     }
 
     .card-header-ultimo {
       padding: 1rem 1.5rem;
-      background: rgba(59, 130, 246, 0.1);
-      border-bottom: 1px solid rgba(59, 130, 246, 0.2);
+      background: transparent;
+      border-bottom: none;
     }
 
     .ultimo-pago-badge {
@@ -308,11 +309,17 @@
       padding: 0.5rem 1rem;
       border-radius: 20px;
       font-size: 0.75rem;
-      font-weight: 600;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .ultimo-pago-badge i {
+      font-size: 0.875rem;
     }
 
     .ultimo-pago-content {
       padding: 1.5rem;
+      background: white;
     }
 
     .ultimo-pago-main {
@@ -325,44 +332,60 @@
     .ultimo-pago-info h3 {
       font-size: 1.25rem;
       font-weight: 700;
-      color: #111827;
-      margin-bottom: 1rem;
+      color: #1e293b;
+      margin-bottom: 1.25rem;
     }
 
     .ultimo-pago-details {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      display: flex;
+      flex-direction: column;
       gap: 1rem;
     }
 
     .detail-item {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.875rem;
-      color: #374151;
+      gap: 0.75rem;
+      font-size: 0.9375rem;
+      color: #475569;
+      line-height: 1.5;
     }
 
     .detail-item i {
       color: #3b82f6;
-      width: 16px;
+      width: 20px;
+      font-size: 1.125rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-start;
+      flex-shrink: 0;
+      vertical-align: middle;
+    }
+
+    .detail-item span {
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1.5;
     }
 
     .ultimo-pago-monto {
       text-align: right;
       flex-shrink: 0;
+      min-width: 140px;
     }
 
     .monto-label {
       font-size: 0.875rem;
-      color: #6b7280;
+      color: #64748b;
       margin-bottom: 0.5rem;
+      font-weight: 500;
     }
 
     .monto-value {
-      font-size: 2rem;
+      font-size: 2.25rem;
       font-weight: 700;
       color: #059669;
+      line-height: 1;
     }
 
     /* Citas pendientes */
@@ -1320,7 +1343,7 @@
           if (ultimoPagoTitulo) ultimoPagoTitulo.textContent = `Pago por ${especialidad}`;
           if (ultimoPagoMonto) ultimoPagoMonto.textContent = `S/ ${monto.toFixed(2)}`;
           if (ultimoPagoFecha) ultimoPagoFecha.textContent = fecha && hora ? `${fecha} a las ${hora}` : 'Fecha no disponible';
-          if (ultimoPagoMetodo) ultimoPagoMetodo.innerHTML = `${metodoIcon} ${metodoFormateado}`;
+          if (ultimoPagoMetodo) ultimoPagoMetodo.textContent = metodoFormateado;
           if (ultimoPagoEspecialidad) ultimoPagoEspecialidad.textContent = especialidad;
           if (ultimoPagoEstado) ultimoPagoEstado.innerHTML = estadoBadge;
           if (ultimoPagoCard) ultimoPagoCard.style.display = 'block';

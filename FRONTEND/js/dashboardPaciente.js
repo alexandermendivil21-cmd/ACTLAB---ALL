@@ -296,6 +296,9 @@ document.addEventListener("DOMContentLoaded", () => {
       });
   };
 
+  // Hacer loadSection global para que esté disponible desde los botones
+  window.loadSection = loadSection;
+
   // ============================================================
   // 🔹 SIDEBAR
   // ============================================================
@@ -488,13 +491,43 @@ document.addEventListener("DOMContentLoaded", () => {
       const citaIdStr = cita._id.toString();
       const tienePago = citasConPago.has(citaIdStr);
       const estaCancelada = estado.toLowerCase() === "cancelada";
+      const estaCompletada = estado.toLowerCase() === "completada";
       const intentosEdicion = cita.intentosEdicion || 0;
       const limiteAlcanzado = intentosEdicion >= 2;
       
+      // Escapar comillas para evitar problemas en el HTML
+      const especialidadEscapada = especialidad.replace(/'/g, "\\'");
+      const motivoEscapado = motivo.replace(/'/g, "\\'");
+      
+      // Determinar el color del estado según el estado de la cita
+      let estadoClass = "warning"; // Amarillo por defecto (pendiente)
+      let estadoColor = "#f59e0b"; // Amarillo
+      const estadoLower = estado.toLowerCase();
+      
+      if (estadoLower === "completada") {
+        estadoClass = "success";
+        estadoColor = "#22c55e"; // Verde
+      } else if (estadoLower === "confirmada") {
+        estadoClass = "primary";
+        estadoColor = "#1976d2"; // Azul
+      } else if (estadoLower === "pendiente") {
+        estadoClass = "warning";
+        estadoColor = "#f59e0b"; // Amarillo
+      } else if (estadoLower === "cancelada") {
+        estadoClass = "danger";
+        estadoColor = "#e74c3c"; // Rojo
+      }
+      
       // Determinar si los botones deben estar desactivados
-      const pagarDeshabilitado = tienePago || estaCancelada;
-      const editarDeshabilitado = tienePago || estaCancelada || limiteAlcanzado;
-      const cancelarDeshabilitado = tienePago || estaCancelada;
+      // Si la cita está completada, desactivar todas las opciones excepto ver recomendaciones
+      const pagarDeshabilitado = tienePago || estaCancelada || estaCompletada;
+      const editarDeshabilitado = tienePago || estaCancelada || estaCompletada || limiteAlcanzado;
+      const cancelarDeshabilitado = tienePago || estaCancelada || estaCompletada;
+
+      // Verificar si hay diagnósticos, resultados o recetas relacionados
+      const tieneDiagnosticos = cita.diagnosticos && cita.diagnosticos.length > 0;
+      const tieneResultados = cita.resultados && cita.resultados.length > 0;
+      const tieneRecetas = tieneDiagnosticos && cita.diagnosticos.some(diag => diag.tieneReceta && diag.receta.length > 0);
 
       return `
       <div class="cita-card">
@@ -502,15 +535,139 @@ document.addEventListener("DOMContentLoaded", () => {
           <div class="cita-date">${fecha} | ${horario}</div>
           <div class="cita-detail"><strong>Especialidad:</strong> ${especialidad}</div>
           <div class="cita-detail"><strong>Motivo:</strong> ${motivo}</div>
-          <div class="cita-detail"><strong>Estado:</strong> <span class="chip ${estado === "Pendiente" ? "secondary" : estado === "Cancelada" ? "danger" : "success"}">${estado}</span></div>
+          <div class="cita-detail"><strong>Estado:</strong> <span class="chip ${estadoClass}" style="background: ${estadoColor}; color: white; text-transform: capitalize;">${estado}</span></div>
           <div class="cita-detail" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb;">
             ${tienePago 
               ? '<strong style="color: #059669; font-size: 1.125rem;"><i class="fa-solid fa-check-circle"></i> Pago realizado: S/ ' + precio.toFixed(2) + '</strong>'
               : '<strong style="color: #059669; font-size: 1.125rem;">Monto a pagar: S/ ' + precio.toFixed(2) + '</strong>'
             }
           </div>
+          ${(tieneDiagnosticos || tieneResultados) ? `
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #e5e7eb;">
+              ${tieneDiagnosticos ? `
+                <div style="margin-bottom: ${tieneResultados ? '1.5rem' : '0'};">
+                  <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #1976d2; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-user-doctor"></i>
+                    Consultas médicas relacionadas (${cita.diagnosticos.length})
+                  </h4>
+                  ${cita.diagnosticos.map((diag, idx) => {
+                    const fechaDiag = new Date(diag.fecha).toLocaleDateString('es-ES', { 
+                      day: '2-digit', 
+                      month: 'short', 
+                      year: 'numeric' 
+                    });
+                    return `
+                      <div style="margin-bottom: ${idx < cita.diagnosticos.length - 1 ? '1rem' : '0'}; padding: 0.75rem; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #1976d2;">
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.9rem;">
+                          ${diag.medico ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Médico:</strong>
+                              <span style="color: #555;">${diag.medico}</span>
+                            </div>
+                          ` : ''}
+                          ${diag.especialidad ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Especialidad:</strong>
+                              <span style="color: #555;">${diag.especialidad}</span>
+                            </div>
+                          ` : ''}
+                          <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Fecha:</strong>
+                            <span style="color: #555;">${fechaDiag}</span>
+                          </div>
+                          ${diag.diagnostico ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Diagnóstico:</strong>
+                              <span style="color: #555;">${diag.diagnostico}</span>
+                            </div>
+                          ` : ''}
+                          ${diag.sintomas ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Síntomas:</strong>
+                              <span style="color: #555;">${diag.sintomas}</span>
+                            </div>
+                          ` : ''}
+                          ${diag.observaciones ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Observaciones:</strong>
+                              <span style="color: #555;">${diag.observaciones}</span>
+                            </div>
+                          ` : ''}
+                          ${diag.tieneReceta && diag.receta.length > 0 ? `
+                            <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #dee2e6;">
+                              <strong style="color: #333; display: block; margin-bottom: 0.5rem;">Medicación prescrita:</strong>
+                              <ul style="margin: 0; padding-left: 1.5rem; color: #555;">
+                                ${diag.receta.map(med => `
+                                  <li>${med.nombre} - ${med.dosis} (${med.frecuencia}) por ${med.duracion}</li>
+                                `).join('')}
+                              </ul>
+                            </div>
+                          ` : ''}
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              ` : ''}
+              ${tieneResultados ? `
+                <div>
+                  <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #1976d2; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-vials"></i>
+                    Resultados de análisis relacionados (${cita.resultados.length})
+                  </h4>
+                  ${cita.resultados.map((res, idx) => {
+                    const fechaRes = new Date(res.fecha).toLocaleDateString('es-ES', { 
+                      day: '2-digit', 
+                      month: 'short', 
+                      year: 'numeric' 
+                    });
+                    const urlResultado = res.archivoPDF ? `http://localhost:5000${res.archivoPDF}` : '';
+                    return `
+                      <div style="margin-bottom: ${idx < cita.resultados.length - 1 ? '1rem' : '0'}; padding: 0.75rem; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #1976d2;">
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.9rem;">
+                          <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Tipo de examen:</strong>
+                            <span style="color: #555;">${res.tipoExamen || 'N/A'}</span>
+                          </div>
+                          <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Fecha:</strong>
+                            <span style="color: #555;">${fechaRes}</span>
+                          </div>
+                          ${res.observaciones ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Observaciones:</strong>
+                              <span style="color: #555;">${res.observaciones}</span>
+                            </div>
+                          ` : ''}
+                          ${res.estado ? `
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Estado:</strong>
+                              <span style="color: #555; text-transform: capitalize;">${res.estado}</span>
+                            </div>
+                          ` : ''}
+                          ${urlResultado ? `
+                            <div style="margin-top: 0.5rem;">
+                              <a href="javascript:void(0)" onclick="window.verResultadoPDF('${res.id}', '${res.nombreArchivo || 'Resultado'}')" style="display: inline-flex; align-items: center; gap: 0.4rem; color: #1976d2; text-decoration: none; font-weight: 500; cursor: pointer;">
+                                <i class="fa-solid fa-file-pdf"></i> Ver resultado completo
+                              </a>
+                            </div>
+                          ` : ''}
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
         </div>
         <div class="cita-actions">
+          <button 
+            class="chip" 
+            onclick="window.showModalRecomendaciones('${especialidadEscapada.replace(/'/g, "\\'")}', '${motivoEscapado.replace(/'/g, "\\'")}')"
+            style="background: #1976d2; color: white; border: none; font-weight: 600; cursor: pointer; margin-bottom: 0.5rem;">
+            <i class="fa-solid fa-lightbulb"></i> Recomendaciones
+          </button>
           <button 
             class="chip" 
             onclick="${pagarDeshabilitado ? '' : `pagarCita('${cita._id}')`}" 
@@ -1485,6 +1642,276 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // ============================================================
+  // ✅ FUNCIONES DE RECOMENDACIONES
+  // ============================================================
+  const getRecomendaciones = (especialidad, motivoCita) => {
+    const recomendaciones = {
+      "Análisis": {
+        titulo: "Recomendaciones para Análisis",
+        items: [
+          "Ayune por al menos 8-12 horas antes del análisis (si es análisis de sangre).",
+          "Mantenga una dieta normal el día anterior, evite alimentos grasos.",
+          "Beba agua normalmente, pero evite alcohol 24 horas antes.",
+          "Informe al personal si está tomando algún medicamento.",
+          "Lleve su documento de identidad y orden médica si la tiene.",
+          "Use ropa cómoda con mangas que se puedan subir fácilmente.",
+          "Evite hacer ejercicio intenso el día anterior."
+        ]
+      },
+      "Cardiología": {
+        titulo: "Recomendaciones para Consulta de Cardiología",
+        items: [
+          "Evitar comer 8-12 horas antes si te pedirán perfil lipídico o glucosa.",
+          "No hacer ejercicio fuerte 24 horas antes, porque altera resultados.",
+          "Lleve un registro de su presión arterial si la monitorea en casa.",
+          "Traiga los resultados de exámenes cardíacos previos si los tiene.",
+          "Use ropa cómoda que permita acceso al pecho y brazos.",
+          "Prepare una lista de los medicamentos que está tomando.",
+          "Anote los síntomas que ha experimentado (dolor de pecho, palpitaciones, etc.)."
+        ]
+      },
+      "Dermatología": {
+        titulo: "Recomendaciones para Consulta de Dermatología",
+        items: [
+          "No aplicar cremas, maquillaje, lociones o pomadas en el área a evaluar antes del examen o raspado.",
+          "Evita rascar o manipular la lesión.",
+          "Lleve fotografías si la condición ha cambiado desde que programó la cita.",
+          "Traiga una lista de productos de cuidado de la piel que está usando.",
+          "Use ropa que permita fácil acceso a las áreas afectadas.",
+          "Anote cuándo comenzaron los síntomas y cómo han evolucionado.",
+          "Informe sobre alergias conocidas a medicamentos o productos."
+        ]
+      },
+      "Pediatría": {
+        titulo: "Recomendaciones para Consulta de Pediatría",
+        items: [
+          "Mantener al niño bien hidratado y descansado.",
+          "No darle antibióticos sin receta antes de exámenes (pueden alterar infecciones en orina/heces).",
+          "Traer vaso de orina.",
+          "Lleve el carnet de vacunación del niño/a.",
+          "Traiga un registro de peso y talla si lo tiene.",
+          "Prepare una lista de medicamentos que el niño/a está tomando.",
+          "Anote los síntomas, cuándo comenzaron y su evolución.",
+          "Lleve juguetes o libros para mantener al niño/a tranquilo/a."
+        ]
+      },
+      "Traumatología": {
+        titulo: "Recomendaciones para Consulta de Traumatología",
+        items: [
+          "Si es análisis preoperatorio: estar en ayunas y no tomar alcohol 48 horas antes.",
+          "Evitar antiinflamatorios sin indicación.",
+          "Traer vaso de orina.",
+          "Lleve radiografías o estudios previos relacionados con la lesión.",
+          "Use ropa cómoda que permita examinar el área afectada.",
+          "Anote cuándo ocurrió la lesión y cómo sucedió.",
+          "Describa el tipo de dolor (agudo, crónico, punzante, etc.).",
+          "Traiga una lista de medicamentos que está tomando."
+        ]
+      },
+      "Neurología": {
+        titulo: "Recomendaciones para Consulta de Neurología",
+        items: [
+          "Traer vaso de orina.",
+          "Dormir lo suficiente. La falta de sueño altera glucosa, hormonas y estudios como el EEG.",
+          "Evitar cafeína y alcohol 24 horas antes si se harán análisis de sangre.",
+          "Lleve estudios previos (resonancia, tomografía, EEG) si los tiene.",
+          "Anote los síntomas neurológicos que ha experimentado.",
+          "Prepare un registro de episodios (convulsiones, mareos, etc.) con fechas.",
+          "Traiga una lista completa de medicamentos actuales.",
+          "Lleve un acompañante si tiene problemas de memoria o equilibrio."
+        ]
+      },
+      "Hematología": {
+        titulo: "Recomendaciones para Consulta de Hematología",
+        items: [
+          "No consumir alcohol 48 horas antes.",
+          "Evitar ejercicio intenso 24 h antes (alteran hemoglobina y plaquetas).",
+          "Si es ayunas, solo agua.",
+          "Lleve resultados de análisis de sangre previos si los tiene.",
+          "Informe sobre sangrados anormales o moretones frecuentes.",
+          "Anote síntomas como fatiga, debilidad o palidez.",
+          "Traiga una lista de medicamentos que está tomando.",
+          "Informe sobre antecedentes familiares de enfermedades de la sangre."
+        ]
+      },
+      "Inmunología": {
+        titulo: "Recomendaciones para Consulta de Inmunología",
+        items: [
+          "No tomar antihistamínicos 5-7 días antes si te harán pruebas de alergia.",
+          "No vacunarte 1-2 semanas antes de un perfil inmunológico (puede alterar anticuerpos).",
+          "Traer vaso de orina.",
+          "Lleve un registro de alergias conocidas y reacciones alérgicas previas.",
+          "Anote los síntomas alérgicos que ha experimentado.",
+          "Traiga una lista de medicamentos y suplementos que está tomando.",
+          "Informe sobre condiciones autoinmunes en la familia.",
+          "Lleve resultados de pruebas de alergia previas si las tiene."
+        ]
+      },
+      "Bioquímica": {
+        titulo: "Recomendaciones para Consulta de Bioquímica",
+        items: [
+          "Estar en ayunas 8-12 horas para exámenes de glucosa, triglicéridos, colesterol.",
+          "No fumar ni tomar café esa mañana.",
+          "Traer vaso de orina.",
+          "Lleve resultados de análisis bioquímicos previos si los tiene.",
+          "Informe sobre su dieta y hábitos alimenticios.",
+          "Anote síntomas relacionados con el metabolismo (fatiga, cambios de peso, etc.).",
+          "Traiga una lista de medicamentos y suplementos que está tomando."
+        ]
+      }
+    };
+
+    // Si es análisis, devolver recomendaciones según la especialidad
+    if (motivoCita === "Análisis" || motivoCita === "Para sacar análisis") {
+      // Actualizar recomendaciones para análisis por especialidad
+      const recomendacionesAnalisis = {
+        "Cardiología": {
+          titulo: "Recomendaciones para Análisis de Cardiología",
+          items: [
+            "Evitar comer 8–12 horas antes si te pedirán perfil lipídico o glucosa.",
+            "No hacer ejercicio fuerte 24 horas antes, porque altera resultados."
+          ]
+        },
+        "Dermatología": {
+          titulo: "Recomendaciones para Análisis de Dermatología",
+          items: [
+            "No aplicar cremas, maquillaje, lociones o pomadas en el área a evaluar antes del examen o raspado.",
+            "Evita rascar o manipular la lesión."
+          ]
+        },
+        "Pediatría": {
+          titulo: "Recomendaciones para Análisis de Pediatría",
+          items: [
+            "Mantener al niño bien hidratado y descansado.",
+            "No darle antibióticos sin receta antes de exámenes (pueden alterar infecciones en orina/heces).",
+            "Traer vaso de orina."
+          ]
+        },
+        "Traumatología": {
+          titulo: "Recomendaciones para Análisis de Traumatología",
+          items: [
+            "Si es análisis preoperatorio: estar en ayunas y no tomar alcohol 48 horas antes.",
+            "Evitar antiinflamatorios sin indicación.",
+            "Traer vaso de orina."
+          ]
+        },
+        "Neurología": {
+          titulo: "Recomendaciones para Análisis de Neurología",
+          items: [
+            "Traer vaso de orina.",
+            "Dormir lo suficiente. La falta de sueño altera glucosa, hormonas y estudios como el EEG.",
+            "Evitar cafeína y alcohol 24 horas antes si se harán análisis de sangre."
+          ]
+        },
+        "Hematología": {
+          titulo: "Recomendaciones para Análisis de Hematología",
+          items: [
+            "No consumir alcohol 48 horas antes.",
+            "Evitar ejercicio intenso 24 h antes (alteran hemoglobina y plaquetas).",
+            "Si es ayunas, solo agua."
+          ]
+        },
+        "Inmunología": {
+          titulo: "Recomendaciones para Análisis de Inmunología",
+          items: [
+            "No tomar antihistamínicos 5–7 días antes si te harán pruebas de alergia.",
+            "No vacunarte 1–2 semanas antes de un perfil inmunológico (puede alterar anticuerpos).",
+            "Traer vaso de orina."
+          ]
+        },
+        "Bioquímica": {
+          titulo: "Recomendaciones para Análisis de Bioquímica",
+          items: [
+            "Estar en ayunas 8–12 horas para exámenes de glucosa, triglicéridos, colesterol.",
+            "No fumar ni tomar café esa mañana.",
+            "Traer vaso de orina."
+          ]
+        }
+      };
+      
+      return recomendacionesAnalisis[especialidad] || recomendaciones["Análisis"];
+    }
+
+    // Si no es análisis, devolver recomendaciones según la especialidad
+    return recomendaciones[especialidad] || {
+      titulo: "Recomendaciones Generales",
+      items: [
+        "Lleve su documento de identidad.",
+        "Traiga una lista de medicamentos que está tomando.",
+        "Anote los síntomas que ha experimentado.",
+        "Llegue 10 minutos antes de su cita.",
+        "Use ropa cómoda."
+      ]
+    };
+  };
+
+  window.showModalRecomendaciones = (especialidad, motivoCita) => {
+    const recomendaciones = getRecomendaciones(especialidad, motivoCita);
+    
+    // Crear o obtener el modal de recomendaciones
+    let modalRecomendaciones = document.getElementById("modalRecomendaciones");
+    
+    if (!modalRecomendaciones) {
+      // Crear el modal si no existe
+      modalRecomendaciones = document.createElement("div");
+      modalRecomendaciones.id = "modalRecomendaciones";
+      modalRecomendaciones.className = "modal-overlay";
+      modalRecomendaciones.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 10000;";
+      modalRecomendaciones.innerHTML = `
+        <div class="modal-content" style="max-width: 600px; max-height: 80vh; overflow-y: auto; background: white; border-radius: 12px; padding: 2rem; position: relative;">
+          <div style="text-align: center; margin-bottom: 1.5rem;">
+            <div style="width: 60px; height: 60px; margin: 0 auto 1rem; background: #1976d2; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              <i class="fa-solid fa-lightbulb" style="color: white; font-size: 1.5rem;"></i>
+            </div>
+            <h2 id="modalRecomendacionesTitulo" style="margin: 0; color: #1976d2; font-size: 1.5rem;"></h2>
+          </div>
+          <div id="modalRecomendacionesLista" style="margin-bottom: 1.5rem;"></div>
+          <button class="btn-primary" id="btnCerrarRecomendaciones" style="width: 100%;">
+            Entendido
+          </button>
+        </div>
+      `;
+      document.body.appendChild(modalRecomendaciones);
+
+      // Cerrar al hacer clic fuera del modal
+      modalRecomendaciones.addEventListener("click", (e) => {
+        if (e.target === modalRecomendaciones) {
+          modalRecomendaciones.style.display = "none";
+        }
+      });
+    }
+
+    // Configurar el botón "Entendido" para cerrar el modal
+    const btnCerrarRecomendaciones = document.getElementById("btnCerrarRecomendaciones");
+    if (btnCerrarRecomendaciones) {
+      // Remover listeners anteriores
+      const newBtn = btnCerrarRecomendaciones.cloneNode(true);
+      btnCerrarRecomendaciones.parentNode.replaceChild(newBtn, btnCerrarRecomendaciones);
+      
+      newBtn.addEventListener("click", () => {
+        const modalRecomendaciones = document.getElementById("modalRecomendaciones");
+        if (modalRecomendaciones) {
+          modalRecomendaciones.style.display = "none";
+        }
+      });
+    }
+
+    // Llenar el contenido
+    document.getElementById("modalRecomendacionesTitulo").textContent = recomendaciones.titulo;
+    const lista = document.getElementById("modalRecomendacionesLista");
+    lista.innerHTML = `
+      <div style="background: #f8f9fa; padding: 1rem; border-radius: 8px;">
+        <ul style="margin: 0; padding-left: 1.5rem; color: #333;">
+          ${recomendaciones.items.map(item => `<li style="margin-bottom: 0.75rem; line-height: 1.6;">${item}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+
+    // Mostrar el modal
+    modalRecomendaciones.style.display = "flex";
+  };
+
+  // ============================================================
   // ✅ GUARDAR CITA CON MODAL
   // ============================================================
   const handleSolicitarCita = async () => {
@@ -1543,6 +1970,10 @@ document.addEventListener("DOMContentLoaded", () => {
       sessionStorage.removeItem("especialidadSeleccionada");
 
       showModal(true, "Cita registrada", "Tu cita ha sido registrada correctamente.");
+      
+      // Guardar especialidad y motivo para mostrar recomendaciones después
+      sessionStorage.setItem('ultimaEspecialidadCita', especialidad);
+      sessionStorage.setItem('ultimoMotivoCita', motivoCita);
     } catch (error) {
       console.error("Error al guardar la cita:", error);
       showModal(false, "Error al guardar cita", error.message || "No se pudo registrar la cita.");
@@ -1570,7 +2001,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     btnModalSiguiente.onclick = () => {
       modal.style.display = "none";
-      if (success) loadSection("citas");
+      if (success) {
+        // Limpiar datos temporales
+        sessionStorage.removeItem('ultimaEspecialidadCita');
+        sessionStorage.removeItem('ultimoMotivoCita');
+        // Redirigir a la lista de citas
+        loadSection("citas");
+      }
     };
   };
 
@@ -1755,6 +2192,7 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         handleSolicitarCita();
       });
+
   };
 
   // ============================================================
@@ -1778,6 +2216,67 @@ document.addEventListener("DOMContentLoaded", () => {
     const tbody = document.getElementById("pruebas-tbody");
     if (tbody) {
       await renderPruebas();
+    }
+    // Cargar último análisis registrado
+    await cargarUltimoAnalisis();
+  };
+
+  const cargarUltimoAnalisis = async () => {
+    try {
+      const email = sessionStorage.getItem("userEmail");
+      if (!email) return;
+
+      const resultados = await getResultados();
+      
+      if (!resultados || resultados.length === 0) {
+        // Si no hay resultados, mostrar mensaje
+        const resumenCard = document.querySelector('.card.resumen');
+        if (resumenCard) {
+          const resumenDatos = resumenCard.querySelector('.resumen-datos');
+          if (resumenDatos) {
+            resumenDatos.innerHTML = '<p style="color: #666;">No hay análisis registrados</p>';
+          }
+        }
+        return;
+      }
+
+      // Ordenar por fecha más reciente
+      const resultadosOrdenados = resultados.sort((a, b) => {
+        const fechaA = new Date(a.fechaResultado || a.fechaExamen);
+        const fechaB = new Date(b.fechaResultado || b.fechaExamen);
+        return fechaB - fechaA;
+      });
+
+      const ultimoResultado = resultadosOrdenados[0];
+      
+      // Formatear fecha
+      const fecha = new Date(ultimoResultado.fechaResultado || ultimoResultado.fechaExamen);
+      const fechaFormateada = fecha.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric'
+      });
+
+      // Actualizar el HTML del resumen (sin estado)
+      const resumenCard = document.querySelector('.card.resumen');
+      if (resumenCard) {
+        const resumenDatos = resumenCard.querySelector('.resumen-datos');
+        if (resumenDatos) {
+          resumenDatos.innerHTML = `
+            <p><strong>Examen:</strong> ${ultimoResultado.tipoExamen || 'N/A'}</p>
+            <p><strong>Fecha:</strong> ${fechaFormateada}</p>
+          `;
+        }
+      }
+    } catch (err) {
+      console.error("Error cargando último análisis:", err);
+      const resumenCard = document.querySelector('.card.resumen');
+      if (resumenCard) {
+        const resumenDatos = resumenCard.querySelector('.resumen-datos');
+        if (resumenDatos) {
+          resumenDatos.innerHTML = '<p style="color: #666;">Error al cargar el último análisis</p>';
+        }
+      }
     }
   };
 
@@ -1819,6 +2318,11 @@ document.addEventListener("DOMContentLoaded", () => {
   window.verResultadoPDF = (id, nombre) => {
     sessionStorage.setItem("currentPDF", JSON.stringify({ id, nombre }));
     loadSection("ver-resultado");
+  };
+
+  // Función global para volver a resultados
+  window.volverAResultados = () => {
+    loadSection("resultados");
   };
 
   const initVerResultadoView = () => {
@@ -3284,8 +3788,8 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      // Obtener información del doctor
-      const response = await fetch(`/api/personal/${doctorId}`);
+      // Obtener información del doctor (sin email ni celular para pacientes)
+      const response = await fetch(`/api/personal/${doctorId}?paciente=true`);
       if (!response.ok) {
         throw new Error("Error al cargar el perfil del doctor");
       }
@@ -3362,22 +3866,6 @@ document.addEventListener("DOMContentLoaded", () => {
                           genero === "masculino" ? "Masculino" : 
                           genero === "otro" ? "Otro" : "No especificado";
         doctorGenero.textContent = generoText;
-      }
-
-      // Configurar información de contacto
-      const doctorEmail = document.getElementById("doctor-profile-email");
-      if (doctorEmail) {
-        doctorEmail.textContent = doctor.email || "-";
-      }
-
-      const doctorCelular = document.getElementById("doctor-profile-celular");
-      if (doctorCelular) {
-        doctorCelular.textContent = doctor.celular || "-";
-      }
-
-      const doctorDireccion = document.getElementById("doctor-profile-direccion");
-      if (doctorDireccion) {
-        doctorDireccion.textContent = doctor.direccion || "-";
       }
 
       // Configurar horarios de disponibilidad
@@ -3556,6 +4044,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <h3>${evento.titulo}</h3>
           <p class="muted">${evento.subtitulo}</p>
           <p>${evento.descripcion}</p>
+          ${evento.especialidad ? `<p style="margin-top: 0.5rem;"><strong>Especialidad:</strong> ${evento.especialidad}</p>` : ''}
           ${evento.sintomas ? `<p><strong>Síntomas:</strong> ${evento.sintomas}</p>` : ''}
           ${evento.observaciones ? `<p><strong>Observaciones:</strong> ${evento.observaciones}</p>` : ''}
           ${evento.tieneReceta && evento.receta.length > 0 ? `
@@ -3578,23 +4067,209 @@ document.addEventListener("DOMContentLoaded", () => {
           <p>${evento.descripcion}</p>
           ${evento.observaciones ? `<p><strong>Observaciones:</strong> ${evento.observaciones}</p>` : ''}
           ${urlResultado ? `
-            <a href="/ver-resultado?id=${evento.id}" style="display: inline-block; margin-top: 0.5rem; color: #007bff; text-decoration: none;">
+            <a href="javascript:void(0)" onclick="window.verResultadoPDF('${evento.id}', '${evento.nombreArchivo || 'Resultado'}')" style="display: inline-block; margin-top: 0.5rem; color: #007bff; text-decoration: none; cursor: pointer;">
               <i class="fa-solid fa-file-pdf"></i> Ver resultado completo
             </a>
           ` : ''}
         `;
       } else if (evento.tipo === "cita") {
-        // Mostrar información de la cita
-        const estadoClass = evento.estado === "completada" ? "success" : 
-                           evento.estado === "cancelada" ? "danger" : 
-                           evento.estado === "confirmada" ? "primary" : "warning";
+        // Mostrar información de la cita desglosada
+        const estadoLower = (evento.estado || "pendiente").toLowerCase();
+        let estadoClass = "warning";
+        let estadoColor = "#f59e0b"; // Amarillo por defecto
+        
+        if (estadoLower === "completada") {
+          estadoClass = "success";
+          estadoColor = "#22c55e"; // Verde
+        } else if (estadoLower === "confirmada") {
+          estadoClass = "primary";
+          estadoColor = "#1976d2"; // Azul
+        } else if (estadoLower === "pendiente") {
+          estadoClass = "warning";
+          estadoColor = "#f59e0b"; // Amarillo
+        } else if (estadoLower === "cancelada") {
+          estadoClass = "danger";
+          estadoColor = "#e74c3c"; // Rojo
+        }
+        
+        // Formatear fecha y horario de manera más detallada
+        const fechaObj = new Date(evento.fecha);
+        const fechaFormateada = fechaObj.toLocaleDateString('es-ES', { 
+          day: '2-digit', 
+          month: 'short', 
+          year: 'numeric' 
+        });
+        
+        // Formatear horario si está disponible
+        const horarioFormateado = evento.horario || '';
+        
+        // Construir el subtítulo con especialidad, fecha y horario
+        let subtitulo = '';
+        if (evento.especialidad) {
+          subtitulo = `${evento.especialidad} - ${fechaFormateada}`;
+          if (horarioFormateado) {
+            subtitulo += ` ${horarioFormateado}`;
+          }
+        } else {
+          subtitulo = `${fechaFormateada}${horarioFormateado ? ' ' + horarioFormateado : ''}`;
+        }
+        
+        // Verificar si hay diagnósticos o resultados relacionados
+        const tieneDiagnosticos = evento.diagnosticos && evento.diagnosticos.length > 0;
+        const tieneResultados = evento.resultados && evento.resultados.length > 0;
+        
         contenidoHTML = `
           <h3>${evento.titulo}</h3>
-          <p class="muted">${evento.subtitulo}</p>
-          <p>${evento.descripcion}</p>
-          <span class="badge badge-${estadoClass}" style="display: inline-block; margin-top: 0.5rem; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.875rem; text-transform: capitalize;">
-            ${evento.estado}
-          </span>
+          <p class="muted" style="margin-bottom: 0.5rem; font-size: 0.9rem;">
+            ${subtitulo}
+          </p>
+          ${evento.motivoCita ? `<p style="margin: 0.5rem 0; color: #555; font-size: 0.9rem;">${evento.motivoCita}</p>` : ''}
+          <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb;">
+            <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem;">
+              ${evento.especialidad ? `
+                <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                  <strong style="color: #333; min-width: 90px; flex-shrink: 0;">Especialidad:</strong>
+                  <span style="color: #555;">${evento.especialidad}</span>
+                </div>
+              ` : ''}
+              ${horarioFormateado ? `
+                <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                  <strong style="color: #333; min-width: 90px; flex-shrink: 0;">Horario:</strong>
+                  <span style="color: #555;">${horarioFormateado}</span>
+                </div>
+              ` : ''}
+              ${evento.motivoCita ? `
+                <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                  <strong style="color: #333; min-width: 90px; flex-shrink: 0;">Motivo:</strong>
+                  <span style="color: #555;">${evento.motivoCita}</span>
+                </div>
+              ` : ''}
+              <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                <strong style="color: #333; min-width: 90px; flex-shrink: 0;">Estado:</strong>
+                <span class="badge badge-${estadoClass}" style="background: ${estadoColor}; color: white; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.875rem; text-transform: capitalize; font-weight: 600;">
+                  ${evento.estado || 'Pendiente'}
+                </span>
+              </div>
+            </div>
+          </div>
+          ${(tieneDiagnosticos || tieneResultados) ? `
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 2px solid #e5e7eb;">
+              ${tieneDiagnosticos ? `
+                <div style="margin-bottom: ${tieneResultados ? '1.5rem' : '0'};">
+                  <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #1976d2; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-user-doctor"></i>
+                    Consultas médicas relacionadas (${evento.diagnosticos.length})
+                  </h4>
+                  ${evento.diagnosticos.map((diag, idx) => {
+                    const fechaDiag = new Date(diag.fecha).toLocaleDateString('es-ES', { 
+                      day: '2-digit', 
+                      month: 'short', 
+                      year: 'numeric' 
+                    });
+                    return `
+                      <div style="margin-bottom: ${idx < evento.diagnosticos.length - 1 ? '1rem' : '0'}; padding: 0.75rem; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #1976d2;">
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.9rem;">
+                          ${diag.medico ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Médico:</strong>
+                              <span style="color: #555;">${diag.medico}</span>
+                            </div>
+                          ` : ''}
+                          ${diag.especialidad ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Especialidad:</strong>
+                              <span style="color: #555;">${diag.especialidad}</span>
+                            </div>
+                          ` : ''}
+                          <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Fecha:</strong>
+                            <span style="color: #555;">${fechaDiag}</span>
+                          </div>
+                          ${diag.diagnostico ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Diagnóstico:</strong>
+                              <span style="color: #555;">${diag.diagnostico}</span>
+                            </div>
+                          ` : ''}
+                          ${diag.sintomas ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Síntomas:</strong>
+                              <span style="color: #555;">${diag.sintomas}</span>
+                            </div>
+                          ` : ''}
+                          ${diag.observaciones ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Observaciones:</strong>
+                              <span style="color: #555;">${diag.observaciones}</span>
+                            </div>
+                          ` : ''}
+                          ${diag.tieneReceta && diag.receta.length > 0 ? `
+                            <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #dee2e6;">
+                              <strong style="color: #333; display: block; margin-bottom: 0.5rem;">Medicación prescrita:</strong>
+                              <ul style="margin: 0; padding-left: 1.5rem; color: #555;">
+                                ${diag.receta.map(med => `
+                                  <li>${med.nombre} - ${med.dosis} (${med.frecuencia}) por ${med.duracion}</li>
+                                `).join('')}
+                              </ul>
+                            </div>
+                          ` : ''}
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              ` : ''}
+              ${tieneResultados ? `
+                <div>
+                  <h4 style="margin: 0 0 0.75rem 0; font-size: 1rem; color: #1976d2; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fa-solid fa-vials"></i>
+                    Resultados de análisis relacionados (${evento.resultados.length})
+                  </h4>
+                  ${evento.resultados.map((res, idx) => {
+                    const fechaRes = new Date(res.fecha).toLocaleDateString('es-ES', { 
+                      day: '2-digit', 
+                      month: 'short', 
+                      year: 'numeric' 
+                    });
+                    const urlResultado = res.archivoPDF ? `http://localhost:5000${res.archivoPDF}` : '';
+                    return `
+                      <div style="margin-bottom: ${idx < evento.resultados.length - 1 ? '1rem' : '0'}; padding: 0.75rem; background: #f8f9fa; border-radius: 6px; border-left: 3px solid #1976d2;">
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.9rem;">
+                          <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Tipo de examen:</strong>
+                            <span style="color: #555;">${res.tipoExamen || 'N/A'}</span>
+                          </div>
+                          <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                            <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Fecha:</strong>
+                            <span style="color: #555;">${fechaRes}</span>
+                          </div>
+                          ${res.observaciones ? `
+                            <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Observaciones:</strong>
+                              <span style="color: #555;">${res.observaciones}</span>
+                            </div>
+                          ` : ''}
+                          ${res.estado ? `
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                              <strong style="color: #333; min-width: 100px; flex-shrink: 0;">Estado:</strong>
+                              <span style="color: #555; text-transform: capitalize;">${res.estado}</span>
+                            </div>
+                          ` : ''}
+                          ${urlResultado ? `
+                            <div style="margin-top: 0.5rem;">
+                              <a href="javascript:void(0)" onclick="window.verResultadoPDF('${res.id}', '${res.nombreArchivo || 'Resultado'}')" style="display: inline-flex; align-items: center; gap: 0.4rem; color: #1976d2; text-decoration: none; font-weight: 500; cursor: pointer;">
+                                <i class="fa-solid fa-file-pdf"></i> Ver resultado completo
+                              </a>
+                            </div>
+                          ` : ''}
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
         `;
       }
 

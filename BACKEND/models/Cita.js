@@ -74,6 +74,12 @@ const citaSchema = new mongoose.Schema(
       min: 0,
       max: 2,
     },
+
+    // Campo para rastrear si se envió la notificación de 2 horas antes
+    notificacion2HorasEnviada: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

@@ -355,11 +355,67 @@ export const getHistorialMedico = async (req, res) => {
     const resultados = await Resultado.find({ email: emailLower })
       .sort({ fechaResultado: -1 });
     
-    // Formatear el historial como una línea de tiempo unificada
+    // Formatear el historial agrupando diagnósticos y resultados con sus citas
     const historial = [];
     
-    // Agregar citas al historial
+    // Agregar citas al historial con sus diagnósticos y resultados relacionados
     citas.forEach(cita => {
+      const fechaCita = new Date(cita.fechaCita);
+      const inicioDia = new Date(fechaCita);
+      inicioDia.setHours(0, 0, 0, 0);
+      const finDia = new Date(fechaCita);
+      finDia.setHours(23, 59, 59, 999);
+      
+      // Buscar diagnósticos relacionados (misma especialidad, rango amplio de fechas)
+      const diagnosticosRelacionados = diagnosticos.filter(diag => {
+        const fechaDiag = new Date(diag.fechaDiagnostico);
+        const fechaLimite = new Date(fechaCita);
+        fechaLimite.setDate(fechaLimite.getDate() + 180); // 6 meses después
+        const fechaInicio = new Date(fechaCita);
+        fechaInicio.setDate(fechaInicio.getDate() - 180); // 6 meses antes
+        return diag.idMedico?.especialidad === cita.especialidad &&
+               fechaDiag >= fechaInicio && 
+               fechaDiag <= fechaLimite;
+      }).map(diag => {
+        const medicoNombre = diag.idMedico 
+          ? `${diag.idMedico.nombres} ${diag.idMedico.apellidos}`
+          : "Médico no disponible";
+        return {
+          id: diag._id,
+          fecha: diag.fechaDiagnostico,
+          medico: medicoNombre,
+          especialidad: diag.idMedico?.especialidad,
+          diagnostico: diag.diagnostico,
+          sintomas: diag.sintomas,
+          observaciones: diag.observaciones,
+          receta: diag.receta?.tieneReceta ? diag.receta.medicamentos : [],
+          tieneReceta: diag.receta?.tieneReceta || false
+        };
+      });
+      
+      // Buscar resultados relacionados (misma especialidad, sin restricción de fecha estricta)
+      const resultadosRelacionados = resultados.filter(res => {
+        // Si la especialidad coincide, asociar el resultado con la cita
+        // Permitir un rango amplio de fechas para mayor flexibilidad
+        const fechaRes = new Date(res.fechaResultado);
+        const fechaLimite = new Date(fechaCita);
+        fechaLimite.setDate(fechaLimite.getDate() + 180); // 6 meses después
+        const fechaInicio = new Date(fechaCita);
+        fechaInicio.setDate(fechaInicio.getDate() - 180); // 6 meses antes
+        return res.tipoExamen === cita.especialidad &&
+               fechaRes >= fechaInicio && 
+               fechaRes <= fechaLimite;
+      }).map(res => ({
+        id: res._id,
+        fecha: res.fechaResultado,
+        tipoExamen: res.tipoExamen,
+        fechaExamen: res.fechaExamen,
+        observaciones: res.observaciones,
+        archivoPDF: res.archivoPDF,
+        nombreArchivo: res.nombreArchivo,
+        estado: res.estado
+      }));
+      
       historial.push({
         tipo: "cita",
         id: cita._id,
@@ -370,49 +426,79 @@ export const getHistorialMedico = async (req, res) => {
         estado: cita.estado,
         especialidad: cita.especialidad,
         horario: cita.horario,
-        motivoCita: cita.motivoCita
+        motivoCita: cita.motivoCita,
+        diagnosticos: diagnosticosRelacionados,
+        resultados: resultadosRelacionados
       });
     });
     
-    // Agregar diagnósticos al historial
+    // Agregar solo diagnósticos que NO están asociados a ninguna cita (misma especialidad)
     diagnosticos.forEach(diagnostico => {
-      const medicoNombre = diagnostico.idMedico 
-        ? `${diagnostico.idMedico.nombres} ${diagnostico.idMedico.apellidos}`
-        : "Médico no disponible";
-      
-      historial.push({
-        tipo: "diagnostico",
-        id: diagnostico._id,
-        fecha: diagnostico.fechaDiagnostico,
-        titulo: "Consulta médica",
-        subtitulo: `${new Date(diagnostico.fechaDiagnostico).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} — ${diagnostico.idMedico?.especialidad || "Consulta"}`,
-        descripcion: `Atendido por ${medicoNombre}. ${diagnostico.diagnostico}`,
-        medico: medicoNombre,
-        especialidad: diagnostico.idMedico?.especialidad,
-        diagnostico: diagnostico.diagnostico,
-        sintomas: diagnostico.sintomas,
-        observaciones: diagnostico.observaciones,
-        receta: diagnostico.receta?.tieneReceta ? diagnostico.receta.medicamentos : [],
-        tieneReceta: diagnostico.receta?.tieneReceta || false
+      const fechaDiag = new Date(diagnostico.fechaDiagnostico);
+      const estaAsociado = citas.some(cita => {
+        const fechaCita = new Date(cita.fechaCita);
+        const fechaLimite = new Date(fechaCita);
+        fechaLimite.setDate(fechaLimite.getDate() + 180); // 6 meses después
+        const fechaInicio = new Date(fechaCita);
+        fechaInicio.setDate(fechaInicio.getDate() - 180); // 6 meses antes
+        return diagnostico.idMedico?.especialidad === cita.especialidad &&
+               fechaDiag >= fechaInicio && 
+               fechaDiag <= fechaLimite;
       });
+      
+      if (!estaAsociado) {
+        const medicoNombre = diagnostico.idMedico 
+          ? `${diagnostico.idMedico.nombres} ${diagnostico.idMedico.apellidos}`
+          : "Médico no disponible";
+        
+        historial.push({
+          tipo: "diagnostico",
+          id: diagnostico._id,
+          fecha: diagnostico.fechaDiagnostico,
+          titulo: "Consulta médica",
+          subtitulo: `${new Date(diagnostico.fechaDiagnostico).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} — ${diagnostico.idMedico?.especialidad || "Consulta"}`,
+          descripcion: `Atendido por ${medicoNombre}. ${diagnostico.diagnostico}`,
+          medico: medicoNombre,
+          especialidad: diagnostico.idMedico?.especialidad,
+          diagnostico: diagnostico.diagnostico,
+          sintomas: diagnostico.sintomas,
+          observaciones: diagnostico.observaciones,
+          receta: diagnostico.receta?.tieneReceta ? diagnostico.receta.medicamentos : [],
+          tieneReceta: diagnostico.receta?.tieneReceta || false
+        });
+      }
     });
     
-    // Agregar resultados de exámenes al historial
+    // Agregar solo resultados que NO están asociados a ninguna cita (misma especialidad)
     resultados.forEach(resultado => {
-      historial.push({
-        tipo: "resultado",
-        id: resultado._id,
-        fecha: resultado.fechaResultado,
-        titulo: "Resultado de análisis",
-        subtitulo: `${new Date(resultado.fechaResultado).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} — ${resultado.tipoExamen}`,
-        descripcion: resultado.observaciones || `Resultado de examen de ${resultado.tipoExamen} disponible.`,
-        tipoExamen: resultado.tipoExamen,
-        fechaExamen: resultado.fechaExamen,
-        observaciones: resultado.observaciones,
-        archivoPDF: resultado.archivoPDF,
-        nombreArchivo: resultado.nombreArchivo,
-        estado: resultado.estado
+      const fechaRes = new Date(resultado.fechaResultado);
+      const estaAsociado = citas.some(cita => {
+        const fechaCita = new Date(cita.fechaCita);
+        const fechaLimite = new Date(fechaCita);
+        fechaLimite.setDate(fechaLimite.getDate() + 180); // 6 meses después
+        const fechaInicio = new Date(fechaCita);
+        fechaInicio.setDate(fechaInicio.getDate() - 180); // 6 meses antes
+        return resultado.tipoExamen === cita.especialidad &&
+               fechaRes >= fechaInicio && 
+               fechaRes <= fechaLimite;
       });
+      
+      if (!estaAsociado) {
+        historial.push({
+          tipo: "resultado",
+          id: resultado._id,
+          fecha: resultado.fechaResultado,
+          titulo: "Resultado de análisis",
+          subtitulo: `${new Date(resultado.fechaResultado).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })} — ${resultado.tipoExamen}`,
+          descripcion: resultado.observaciones || `Resultado de examen de ${resultado.tipoExamen} disponible.`,
+          tipoExamen: resultado.tipoExamen,
+          fechaExamen: resultado.fechaExamen,
+          observaciones: resultado.observaciones,
+          archivoPDF: resultado.archivoPDF,
+          nombreArchivo: resultado.nombreArchivo,
+          estado: resultado.estado
+        });
+      }
     });
     
     // Ordenar historial por fecha (más reciente primero)

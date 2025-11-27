@@ -19,6 +19,8 @@
     "mongodb": "^6.20.0",
     "mongoose": "^8.19.0",
     "multer": "^2.0.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.8",
     "nodemon": "^3.1.10",
     "open": "^10.2.0"
   }

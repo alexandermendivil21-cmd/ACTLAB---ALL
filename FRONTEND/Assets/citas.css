@@ -85,6 +85,18 @@
   background: #e74c3c;
 }
 
+.chip.success {
+  background: #22c55e;
+}
+
+.chip.warning {
+  background: #f59e0b;
+}
+
+.chip.primary {
+  background: #1976d2;
+}
+
 .chip:hover {
   opacity: 0.9;
 }

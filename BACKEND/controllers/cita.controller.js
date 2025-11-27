@@ -2,6 +2,8 @@
 import Cita from "../models/Cita.js";
 import Usuario from "../models/Usuario.js";
 import Personal from "../models/Personal.js";
+import Diagnostico from "../models/Diagnostico.js";
+import Resultado from "../models/Resultado.js";
 
 // Obtener todas las citas (para admin)
 export const getCitas = async (req, res) => {
@@ -60,8 +62,8 @@ export const getCitas = async (req, res) => {
       };
     });
     
-    // Agregar información del usuario a cada cita
-    const citasConUsuario = citas.map(cita => {
+    // Si se está consultando por email (paciente), agregar diagnósticos y resultados relacionados
+    let citasConUsuario = citas.map(cita => {
       const usuario = mapaUsuarios[cita.email.toLowerCase()];
       return {
         ...cita.toObject(),
@@ -72,6 +74,83 @@ export const getCitas = async (req, res) => {
         } : null
       };
     });
+
+    // Si hay email (consulta de paciente), agregar diagnósticos y resultados relacionados
+    if (email) {
+      const emailLower = email.toLowerCase();
+      
+      // Obtener diagnósticos del paciente
+      const diagnosticos = await Diagnostico.find({ email: emailLower })
+        .populate("idMedico", "nombres apellidos especialidad")
+        .sort({ fechaDiagnostico: -1 });
+      
+      // Obtener resultados del paciente
+      const resultados = await Resultado.find({ email: emailLower })
+        .sort({ fechaResultado: -1 });
+      
+      // Agregar diagnósticos y resultados relacionados a cada cita
+      citasConUsuario = citasConUsuario.map(cita => {
+        const fechaCita = new Date(cita.fechaCita);
+        const inicioDia = new Date(fechaCita);
+        inicioDia.setHours(0, 0, 0, 0);
+        const finDia = new Date(fechaCita);
+        finDia.setHours(23, 59, 59, 999);
+        
+        // Buscar diagnósticos relacionados (misma especialidad, rango amplio de fechas)
+        const diagnosticosRelacionados = diagnosticos.filter(diag => {
+          const fechaDiag = new Date(diag.fechaDiagnostico);
+          const fechaLimite = new Date(fechaCita);
+          fechaLimite.setDate(fechaLimite.getDate() + 180); // 6 meses después
+          const fechaInicio = new Date(fechaCita);
+          fechaInicio.setDate(fechaInicio.getDate() - 180); // 6 meses antes
+          return diag.idMedico?.especialidad === cita.especialidad &&
+                 fechaDiag >= fechaInicio && 
+                 fechaDiag <= fechaLimite;
+        }).map(diag => {
+          const medicoNombre = diag.idMedico 
+            ? `${diag.idMedico.nombres} ${diag.idMedico.apellidos}`
+            : "Médico no disponible";
+          return {
+            id: diag._id,
+            fecha: diag.fechaDiagnostico,
+            medico: medicoNombre,
+            especialidad: diag.idMedico?.especialidad,
+            diagnostico: diag.diagnostico,
+            sintomas: diag.sintomas,
+            observaciones: diag.observaciones,
+            receta: diag.receta?.tieneReceta ? diag.receta.medicamentos : [],
+            tieneReceta: diag.receta?.tieneReceta || false
+          };
+        });
+        
+        // Buscar resultados relacionados (misma especialidad, rango amplio de fechas)
+        const resultadosRelacionados = resultados.filter(res => {
+          const fechaRes = new Date(res.fechaResultado);
+          const fechaLimite = new Date(fechaCita);
+          fechaLimite.setDate(fechaLimite.getDate() + 180); // 6 meses después
+          const fechaInicio = new Date(fechaCita);
+          fechaInicio.setDate(fechaInicio.getDate() - 180); // 6 meses antes
+          return res.tipoExamen === cita.especialidad &&
+                 fechaRes >= fechaInicio && 
+                 fechaRes <= fechaLimite;
+        }).map(res => ({
+          id: res._id,
+          fecha: res.fechaResultado,
+          tipoExamen: res.tipoExamen,
+          fechaExamen: res.fechaExamen,
+          observaciones: res.observaciones,
+          archivoPDF: res.archivoPDF,
+          nombreArchivo: res.nombreArchivo,
+          estado: res.estado
+        }));
+        
+        return {
+          ...cita,
+          diagnosticos: diagnosticosRelacionados,
+          resultados: resultadosRelacionados
+        };
+      });
+    }
     
     res.status(200).json(citasConUsuario);
   } catch (error) {

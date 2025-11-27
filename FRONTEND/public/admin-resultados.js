@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let todasLasMuestras = [];
   let muestrasCargadas = false; // Bandera para evitar recargas innecesarias
   let userCargo = sessionStorage.getItem('userCargo') || '';
+  let citasCargadas = []; // Almacenar las citas cargadas para obtener la especialidad
 
   // Referencias DOM
   const filtroPaciente = document.getElementById('filtroPaciente');
@@ -33,6 +34,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const formMuestra = document.getElementById('formMuestra');
   const inputCitaMuestra = document.getElementById('inputCitaMuestra');
   const inputEmailMuestra = document.getElementById('inputEmailMuestra');
+  const modalExito = document.getElementById('modalExito');
+  const btnCerrarModalExito = document.getElementById('btnCerrarModalExito');
+  const modalConfirmacion = document.getElementById('modalConfirmacion');
+  const btnCancelarConfirmacion = document.getElementById('btnCancelarConfirmacion');
+  const btnConfirmarEliminar = document.getElementById('btnConfirmarEliminar');
+  const modalError = document.getElementById('modalError');
+  const btnCerrarModalError = document.getElementById('btnCerrarModalError');
+  let resultadoAEliminar = null;
 
   // Inicialización
   init();
@@ -58,6 +67,33 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCerrarModal.addEventListener('click', cerrarModal);
     btnCancelar.addEventListener('click', cerrarModal);
     formResultado.addEventListener('submit', guardarResultado);
+    if (btnCerrarModalExito) {
+      btnCerrarModalExito.addEventListener('click', cerrarModalExito);
+    }
+    if (modalExito) {
+      modalExito.addEventListener('click', (e) => {
+        if (e.target === modalExito) cerrarModalExito();
+      });
+    }
+    if (btnCancelarConfirmacion) {
+      btnCancelarConfirmacion.addEventListener('click', cerrarModalConfirmacion);
+    }
+    if (btnConfirmarEliminar) {
+      btnConfirmarEliminar.addEventListener('click', confirmarEliminacion);
+    }
+    if (modalConfirmacion) {
+      modalConfirmacion.addEventListener('click', (e) => {
+        if (e.target === modalConfirmacion) cerrarModalConfirmacion();
+      });
+    }
+    if (btnCerrarModalError) {
+      btnCerrarModalError.addEventListener('click', cerrarModalError);
+    }
+    if (modalError) {
+      modalError.addEventListener('click', (e) => {
+        if (e.target === modalError) cerrarModalError();
+      });
+    }
 
     // File input
     inputPDF.addEventListener('change', (e) => {
@@ -92,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
     if (inputEmailMuestra) {
-      inputEmailMuestra.addEventListener('change', cargarCitasPorEmail);
+      inputEmailMuestra.addEventListener('input', cargarCitasPorDNI);
     }
   }
 
@@ -122,11 +158,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  async function cargarCitasPorEmail() {
-    const email = inputEmailMuestra?.value.trim();
-    if (!email || !inputCitaMuestra) return;
+  async function cargarCitasPorDNI() {
+    const dni = inputEmailMuestra?.value.trim();
+    if (!dni || !inputCitaMuestra) return;
+
+    // Validar formato de DNI
+    if (!/^\d{8}$/.test(dni)) {
+      inputCitaMuestra.innerHTML = '<option value="">Ingrese un DNI válido (8 dígitos)</option>';
+      return;
+    }
 
     try {
+      // Buscar el email del paciente por DNI
+      const email = await buscarEmailPorDNI(dni);
+      
       const response = await fetch(`/api/citas?email=${encodeURIComponent(email)}`);
       if (!response.ok) {
         throw new Error('Error al cargar las citas');
@@ -146,6 +191,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
+      // Guardar citas para poder obtener la especialidad después
+      citasCargadas = citas;
+      
       // Agregar citas al selector
       citas.forEach(cita => {
         const fechaCita = new Date(cita.fechaCita);
@@ -161,16 +209,29 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     } catch (error) {
       console.error('Error al cargar citas:', error);
-      inputCitaMuestra.innerHTML = '<option value="">Error al cargar citas</option>';
+      inputCitaMuestra.innerHTML = '<option value="">Error: ' + (error.message || 'No se encontró un paciente con ese DNI') + '</option>';
     }
   }
 
   function abrirModalMuestra() {
     if (!modalMuestra) return;
     
+    // Limpiar estado de edición
+    muestraEditando = null;
+    
     // Limpiar formulario
     if (formMuestra) formMuestra.reset();
     if (inputCitaMuestra) inputCitaMuestra.innerHTML = '<option value="">Seleccione una cita</option>';
+    
+    // Actualizar título del modal
+    const modalTitulo = document.querySelector('#modalMuestra h3');
+    if (modalTitulo) modalTitulo.textContent = 'Agregar Nueva Muestra';
+    
+    // Actualizar botón de guardar
+    const iconoBtn = document.getElementById('iconoBtnMuestra');
+    const textoBtn = document.getElementById('textoBtnMuestra');
+    if (iconoBtn) iconoBtn.className = 'fa-solid fa-plus';
+    if (textoBtn) textoBtn.textContent = 'Agregar Muestra';
     
     // Establecer fecha actual por defecto
     const hoy = new Date().toISOString().split('T')[0];
@@ -183,24 +244,38 @@ document.addEventListener('DOMContentLoaded', () => {
     modalMuestra.classList.add('hidden');
     if (formMuestra) formMuestra.reset();
     if (inputCitaMuestra) inputCitaMuestra.innerHTML = '<option value="">Seleccione una cita</option>';
+    muestraEditando = null;
   }
 
   async function guardarMuestra(e) {
     e.preventDefault();
 
-    const email = inputEmailMuestra?.value.trim();
+    const dni = inputEmailMuestra?.value.trim();
     const citaId = inputCitaMuestra?.value;
     const tipoMuestra = document.getElementById('inputTipoMuestra')?.value;
     const estadoMuestra = document.getElementById('inputEstadoMuestra')?.value;
     const tecnicoLaboratorio = document.getElementById('inputTecnicoMuestra')?.value.trim();
     const observaciones = document.getElementById('inputObservacionesMuestra')?.value.trim();
 
-    if (!email || !citaId || !tipoMuestra) {
-      alert('Por favor complete todos los campos obligatorios');
+    // Validar DNI
+    if (!dni || !/^\d{8}$/.test(dni)) {
+      mostrarModalError('Por favor, ingrese un DNI válido (8 dígitos)');
+      return;
+    }
+
+    if (!citaId || !tipoMuestra) {
+      mostrarModalError('Por favor complete todos los campos obligatorios');
       return;
     }
 
     try {
+      // Buscar el email del paciente por DNI
+      const email = await buscarEmailPorDNI(dni);
+
+      // Obtener la especialidad de la cita seleccionada
+      const citaSeleccionada = citasCargadas.find(c => c._id === citaId);
+      const especialidad = citaSeleccionada ? (citaSeleccionada.especialidad || '') : '';
+
       const datos = {
         email,
         citaId,
@@ -208,14 +283,47 @@ document.addEventListener('DOMContentLoaded', () => {
         estadoMuestra: estadoMuestra || 'pendiente',
         tecnicoLaboratorio: tecnicoLaboratorio || '',
         observaciones: observaciones || '',
+        especialidad: especialidad, // Incluir la especialidad
       };
 
-      await crearMuestra(datos);
-      alert('Muestra creada correctamente');
+      if (muestraEditando && muestraEditando._id) {
+        // Actualizar muestra existente
+        const response = await fetch(`/api/muestras/${muestraEditando._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(datos),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Error al actualizar la muestra');
+        }
+
+        // Actualizar la muestra localmente con la especialidad
+        const muestraIndex = todasLasMuestras.findIndex(m => m._id === muestraEditando._id);
+        if (muestraIndex !== -1) {
+          todasLasMuestras[muestraIndex].especialidad = especialidad;
+          todasLasMuestras[muestraIndex].citaId = citaId;
+          todasLasMuestras[muestraIndex].tipoMuestra = tipoMuestra;
+          todasLasMuestras[muestraIndex].estadoMuestra = estadoMuestra || 'pendiente';
+          todasLasMuestras[muestraIndex].tecnicoLaboratorio = tecnicoLaboratorio || '';
+          todasLasMuestras[muestraIndex].observaciones = observaciones || '';
+        }
+
+        mostrarModalExito('Muestra actualizada correctamente');
+        muestraEditando = null;
+      } else {
+        // Crear nueva muestra
+        await crearMuestra(datos);
+        mostrarModalExito('Muestra creada correctamente');
+      }
+
       cerrarModalMuestra();
       await cargarMuestras(true); // Forzar recarga de muestras
     } catch (error) {
-      alert('Error: ' + error.message);
+      mostrarModalError(error.message || 'Ha ocurrido un error al procesar la solicitud');
     }
   }
   async function cargarMuestras(forzarRecarga = false) {
@@ -345,14 +453,15 @@ document.addEventListener('DOMContentLoaded', () => {
           ? 'completado'
           : 'pendiente';
 
-        // Solo técnicos pueden cambiar el estado
-        const puedeEditar = userCargo === 'tecnico';
+        // Técnicos y administradores pueden cambiar el estado, editar y eliminar
+        const puedeEditar = userCargo === 'tecnico' || userCargo === 'admin';
+        const puedeEliminar = userCargo === 'tecnico' || userCargo === 'admin';
         const selectEstado = puedeEditar
           ? `
             <select 
               class="status-select ${estadoMuestraClase}" 
               onchange="cambiarEstadoMuestra('${muestra._id}', this.value)"
-              style="padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 0.9rem; font-weight: 500;">
+              style="padding: 0.4rem 0.75rem; border-radius: 6px; border: 2px solid; cursor: pointer; font-size: 0.9rem; font-weight: 500;">
               <option value="pendiente" ${muestra.estadoMuestra === 'pendiente' ? 'selected' : ''}>Pendiente</option>
               <option value="en análisis" ${muestra.estadoMuestra === 'en análisis' ? 'selected' : ''}>En Análisis</option>
               <option value="completado" ${muestra.estadoMuestra === 'completado' ? 'selected' : ''}>Completado</option>
@@ -364,6 +473,20 @@ document.addEventListener('DOMContentLoaded', () => {
             </span>
           `;
 
+        // Botones de acción para técnicos y administradores
+        const botonesAccion = puedeEliminar
+          ? `
+            <div class="acciones-buttons" style="display: flex; gap: 0.5rem; align-items: center;">
+              <button class="btn-action edit" onclick="editarMuestra('${muestra._id}')" title="Editar">
+                <i class="fa-solid fa-pencil"></i>
+              </button>
+              <button class="btn-action delete" onclick="eliminarMuestraConfirm('${muestra._id}')" title="Eliminar">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          `
+          : '<span style="font-size: 0.85rem; color: #666;"><i class="fa-solid fa-lock"></i> Solo lectura</span>';
+
         return `
           <tr>
             <td style="font-weight: 500; text-transform: capitalize;">${tipoMuestra}</td>
@@ -373,7 +496,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <td>${muestra.tecnicoLaboratorio || 'Sin asignar'}</td>
             <td>${muestra.dniPaciente || 'N/A'}</td>
             <td>
-              ${puedeEditar ? '<span style="font-size: 0.85rem; color: #0284c7;"><i class="fa-solid fa-user-cog"></i> Puedes editar</span>' : '<span style="font-size: 0.85rem; color: #666;"><i class="fa-solid fa-lock"></i> Solo lectura</span>'}
+              ${botonesAccion}
             </td>
           </tr>
         `;
@@ -470,14 +593,15 @@ document.addEventListener('DOMContentLoaded', () => {
         ? 'completado'
         : 'pendiente';
 
-      // Solo técnicos pueden cambiar el estado
-      const puedeEditar = userCargo === 'tecnico';
+      // Técnicos y administradores pueden cambiar el estado, editar y eliminar
+      const puedeEditar = userCargo === 'tecnico' || userCargo === 'admin';
+      const puedeEliminar = userCargo === 'tecnico' || userCargo === 'admin';
       const selectEstado = puedeEditar
         ? `
           <select 
             class="status-select ${estadoMuestraClase}" 
             onchange="cambiarEstadoMuestra('${muestra._id}', this.value)"
-            style="padding: 0.4rem 0.75rem; border-radius: 6px; border: 1px solid #e5e7eb; background: white; cursor: pointer; font-size: 0.9rem; font-weight: 500;">
+            style="padding: 0.4rem 0.75rem; border-radius: 6px; border: 2px solid; cursor: pointer; font-size: 0.9rem; font-weight: 500;">
             <option value="pendiente" ${muestra.estadoMuestra === 'pendiente' ? 'selected' : ''}>Pendiente</option>
             <option value="en análisis" ${muestra.estadoMuestra === 'en análisis' ? 'selected' : ''}>En Análisis</option>
             <option value="completado" ${muestra.estadoMuestra === 'completado' ? 'selected' : ''}>Completado</option>
@@ -489,6 +613,20 @@ document.addEventListener('DOMContentLoaded', () => {
           </span>
         `;
 
+      // Botones de acción para técnicos y administradores
+      const botonesAccion = puedeEliminar
+        ? `
+          <div class="acciones-buttons" style="display: flex; gap: 0.5rem; align-items: center;">
+            <button class="btn-action edit" onclick="editarMuestra('${muestra._id}')" title="Editar">
+              <i class="fa-solid fa-pencil"></i>
+            </button>
+            <button class="btn-action delete" onclick="eliminarMuestraConfirm('${muestra._id}')" title="Eliminar">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        `
+        : '<span style="font-size: 0.85rem; color: #666;"><i class="fa-solid fa-lock"></i> Solo lectura</span>';
+
       // Actualizar solo las celdas necesarias
       const celdas = filaEncontrada.querySelectorAll('td');
       if (celdas.length >= 7) {
@@ -498,6 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
         celdas[3].innerHTML = selectEstado;
         celdas[4].textContent = muestra.tecnicoLaboratorio || 'Sin asignar';
         celdas[5].textContent = muestra.dniPaciente || 'N/A';
+        celdas[6].innerHTML = botonesAccion;
       }
     } else {
       // Si no se encuentra la fila, recargar toda la tabla (fallback)
@@ -693,23 +832,23 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================
   // FUNCIONES DEL MODAL
   // ============================================
-  function abrirModal(editando, resultado = null) {
+  async function abrirModal(editando, resultado = null) {
     resultadoEditando = editando ? resultado : null;
     const modalTitulo = document.getElementById('modalTitulo');
     
     if (editando && resultado) {
       modalTitulo.textContent = 'Editar Resultado';
-      document.getElementById('inputEmail').value = resultado.email || '';
+      // Buscar DNI por email
+      const dni = await buscarDNIPorEmail(resultado.email || '');
+      document.getElementById('inputEmail').value = dni || '';
       document.getElementById('inputTipoExamen').value = resultado.tipoExamen || '';
       document.getElementById('inputFechaExamen').value = resultado.fechaExamen ? new Date(resultado.fechaExamen).toISOString().split('T')[0] : '';
       document.getElementById('inputObservaciones').value = resultado.observaciones || '';
-      document.getElementById('inputEstado').value = resultado.estado || 'disponible';
       inputPDF.removeAttribute('required');
       fileName.textContent = resultado.nombreArchivo || 'Archivo actual';
     } else {
       modalTitulo.textContent = 'Subir Nuevo Resultado';
       formResultado.reset();
-      document.getElementById('inputEstado').value = 'disponible';
       document.getElementById('inputFechaExamen').valueAsDate = new Date();
       inputPDF.setAttribute('required', 'required');
       fileName.textContent = 'Seleccionar archivo PDF';
@@ -725,37 +864,180 @@ document.addEventListener('DOMContentLoaded', () => {
     fileName.textContent = 'Seleccionar archivo PDF';
   }
 
-  async function guardarResultado(e) {
-    e.preventDefault();
+  function mostrarModalExito(mensaje, titulo = null) {
+    const mensajeElement = document.getElementById('modalExitoMensaje');
+    const tituloElement = document.getElementById('modalExitoTitulo');
+    
+    if (mensajeElement) {
+      mensajeElement.textContent = mensaje;
+    }
+    
+    if (tituloElement && titulo) {
+      tituloElement.textContent = titulo;
+    } else if (tituloElement && !titulo) {
+      // Restaurar título por defecto si no se proporciona uno
+      tituloElement.textContent = '¡Resultado Guardado Exitosamente!';
+    }
+    
+    if (modalExito) {
+      modalExito.classList.remove('hidden');
+    }
+  }
 
-    const datos = {
-      email: document.getElementById('inputEmail').value,
-      tipoExamen: document.getElementById('inputTipoExamen').value,
-      fechaExamen: document.getElementById('inputFechaExamen').value,
-      observaciones: document.getElementById('inputObservaciones').value,
-      estado: document.getElementById('inputEstado').value
-    };
+  function cerrarModalExito() {
+    if (modalExito) {
+      modalExito.classList.add('hidden');
+    }
+  }
 
-    const archivo = inputPDF.files[0];
+  function mostrarModalConfirmacion(mensaje) {
+    const mensajeElement = document.getElementById('modalConfirmacionMensaje');
+    if (mensajeElement) {
+      mensajeElement.textContent = mensaje;
+    }
+    if (modalConfirmacion) {
+      modalConfirmacion.classList.remove('hidden');
+    }
+  }
 
-    if (!resultadoEditando && !archivo) {
-      alert('Debe seleccionar un archivo PDF');
+  function cerrarModalConfirmacion() {
+    if (modalConfirmacion) {
+      modalConfirmacion.classList.add('hidden');
+    }
+    resultadoAEliminar = null;
+  }
+
+  async function confirmarEliminacion() {
+    // Si hay una muestra para eliminar
+    if (muestraAEliminar) {
+      try {
+        await eliminarMuestra(muestraAEliminar);
+        cerrarModalConfirmacion();
+        const idTemp = muestraAEliminar;
+        muestraAEliminar = null;
+        mostrarModalExito('Muestra eliminada correctamente');
+        await cargarMuestras(true);
+        return;
+      } catch (error) {
+        cerrarModalConfirmacion();
+        muestraAEliminar = null;
+        mostrarModalError(error.message || 'Error al eliminar la muestra');
+        return;
+      }
+    }
+
+    // Si hay un resultado para eliminar
+    if (!resultadoAEliminar) {
+      cerrarModalConfirmacion();
       return;
     }
 
     try {
+      await eliminarResultado(resultadoAEliminar);
+      cerrarModalConfirmacion();
+      resultadoAEliminar = null;
+      mostrarModalExito('El resultado ha sido eliminado del sistema', 'RESULTADO ELIMINADO EXITOSAMENTE');
+      await cargarResultados();
+    } catch (error) {
+      cerrarModalConfirmacion();
+      resultadoAEliminar = null;
+      mostrarModalError(error.message || 'Error al eliminar el resultado');
+    }
+  }
+
+  function mostrarModalError(mensaje) {
+    const mensajeElement = document.getElementById('modalErrorMensaje');
+    if (mensajeElement) {
+      mensajeElement.textContent = mensaje;
+    }
+    if (modalError) {
+      modalError.classList.remove('hidden');
+    }
+  }
+
+  function cerrarModalError() {
+    if (modalError) {
+      modalError.classList.add('hidden');
+    }
+  }
+
+  // Función para buscar paciente por DNI y obtener su email
+  async function buscarEmailPorDNI(dni) {
+    try {
+      const response = await fetch('/api/pacientes');
+      if (!response.ok) {
+        throw new Error('Error al obtener lista de pacientes');
+      }
+      const pacientes = await response.json();
+      const paciente = pacientes.find(p => p.num_documento === dni && p.tipo_documento === 'dni');
+      if (!paciente) {
+        throw new Error('No se encontró un paciente con ese DNI');
+      }
+      return paciente.email;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Función para buscar DNI por email (para edición)
+  async function buscarDNIPorEmail(email) {
+    try {
+      const response = await fetch('/api/pacientes');
+      if (!response.ok) {
+        return null;
+      }
+      const pacientes = await response.json();
+      const paciente = pacientes.find(p => p.email === email);
+      if (!paciente) {
+        return null;
+      }
+      return paciente.num_documento;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async function guardarResultado(e) {
+    e.preventDefault();
+
+    const dni = document.getElementById('inputEmail').value.trim();
+    
+    // Validar DNI
+    if (!dni || !/^\d{8}$/.test(dni)) {
+      mostrarModalError('Por favor, ingrese un DNI válido (8 dígitos)');
+      return;
+    }
+
+    try {
+      // Buscar el email del paciente por DNI
+      const email = await buscarEmailPorDNI(dni);
+
+      const datos = {
+        email: email,
+        tipoExamen: document.getElementById('inputTipoExamen').value,
+        fechaExamen: document.getElementById('inputFechaExamen').value,
+        observaciones: document.getElementById('inputObservaciones').value
+      };
+
+      const archivo = inputPDF.files[0];
+
+      if (!resultadoEditando && !archivo) {
+        mostrarModalError('Debe seleccionar un archivo PDF');
+        return;
+      }
+
       if (resultadoEditando) {
         await actualizarResultado(resultadoEditando._id, datos, archivo);
-        alert('Resultado actualizado correctamente');
+        mostrarModalExito('Resultado actualizado correctamente');
       } else {
         await crearResultado(datos, archivo);
-        alert('Resultado creado correctamente');
+        mostrarModalExito('Resultado creado correctamente');
       }
 
       cerrarModal();
       await cargarResultados();
     } catch (error) {
-      alert('Error: ' + error.message);
+      mostrarModalError(error.message || 'Ha ocurrido un error al procesar la solicitud');
     }
   }
 
@@ -766,18 +1048,98 @@ document.addEventListener('DOMContentLoaded', () => {
     window.open(`/api/admin/resultados/${id}/pdf`, '_blank');
   };
 
-  window.eliminarResultadoConfirm = async function(id) {
-    if (!confirm('¿Está seguro de eliminar este resultado?')) {
-      return;
-    }
+  window.eliminarResultadoConfirm = function(id) {
+    resultadoAEliminar = id;
+    mostrarModalConfirmacion('¿Está seguro de eliminar este resultado?');
+  };
 
+  // Variables para edición/eliminación de muestras
+  let muestraEditando = null;
+  let muestraAEliminar = null;
+
+  // Función para editar muestra
+  window.editarMuestra = async function(id) {
     try {
-      await eliminarResultado(id);
-      alert('Resultado eliminado correctamente');
-      await cargarResultados();
+      const muestra = todasLasMuestras.find(m => m._id === id);
+      if (!muestra) {
+        mostrarModalError('No se encontró la muestra');
+        return;
+      }
+
+      muestraEditando = muestra;
+      
+      // Buscar DNI por email si existe
+      const dni = await buscarDNIPorEmail(muestra.email || '');
+      if (inputEmailMuestra) inputEmailMuestra.value = dni || '';
+      
+      // Cargar citas
+      if (dni) {
+        await cargarCitasPorDNI();
+        // Seleccionar la cita asociada
+        if (inputCitaMuestra && muestra.citaId) {
+          inputCitaMuestra.value = muestra.citaId;
+        }
+      }
+      
+      // Llenar otros campos
+      const inputTipoMuestra = document.getElementById('inputTipoMuestra');
+      const inputTecnicoMuestra = document.getElementById('inputTecnicoMuestra');
+      const inputObservacionesMuestra = document.getElementById('inputObservacionesMuestra');
+      const inputEstadoMuestra = document.getElementById('inputEstadoMuestra');
+      
+      if (inputTipoMuestra) inputTipoMuestra.value = muestra.tipoMuestra || '';
+      if (inputTecnicoMuestra) inputTecnicoMuestra.value = muestra.tecnicoLaboratorio || '';
+      if (inputObservacionesMuestra) inputObservacionesMuestra.value = muestra.observaciones || '';
+      if (inputEstadoMuestra) inputEstadoMuestra.value = muestra.estadoMuestra || 'pendiente';
+
+      // Abrir modal
+      if (modalMuestra) {
+        const modalTitulo = document.querySelector('#modalMuestra h3');
+        if (modalTitulo) modalTitulo.textContent = 'Editar Muestra';
+        
+        // Actualizar botón de guardar
+        const iconoBtn = document.getElementById('iconoBtnMuestra');
+        const textoBtn = document.getElementById('textoBtnMuestra');
+        if (iconoBtn) iconoBtn.className = 'fa-solid fa-check';
+        if (textoBtn) textoBtn.textContent = 'Actualizar Muestra';
+        
+        modalMuestra.classList.remove('hidden');
+      }
     } catch (error) {
-      alert('Error: ' + error.message);
+      mostrarModalError(error.message || 'Error al cargar la muestra para editar');
     }
   };
+
+  // Función para confirmar eliminación de muestra
+  window.eliminarMuestraConfirm = function(id) {
+    muestraAEliminar = id;
+    mostrarModalConfirmacion('¿Está seguro de eliminar esta muestra?');
+  };
+
+  // Función para eliminar muestra
+  async function eliminarMuestra(id) {
+    try {
+      const response = await fetch(`/api/muestras/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al eliminar la muestra');
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error al eliminar muestra:', error);
+      throw error;
+    }
+  }
+
+  // Hacer confirmarEliminacion global para que pueda ser llamada desde HTML
+  window.confirmarEliminacion = confirmarEliminacion;
+
 });
 

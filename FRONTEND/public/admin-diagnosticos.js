@@ -29,6 +29,42 @@ document.addEventListener("DOMContentLoaded", () => {
   const filtroMedico = document.getElementById("filtroMedico");
   const filtroFecha = document.getElementById("filtroFecha");
 
+  // Función para buscar paciente por DNI y obtener su email
+  async function buscarEmailPorDNI(dni) {
+    try {
+      const response = await fetch('/api/pacientes');
+      if (!response.ok) {
+        throw new Error('Error al obtener lista de pacientes');
+      }
+      const pacientes = await response.json();
+      const paciente = pacientes.find(p => p.num_documento === dni && p.tipo_documento === 'dni');
+      if (!paciente) {
+        throw new Error('No se encontró un paciente con ese DNI');
+      }
+      return paciente.email;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Función para buscar DNI por email (para edición)
+  async function buscarDNIPorEmail(email) {
+    try {
+      const response = await fetch('/api/pacientes');
+      if (!response.ok) {
+        return null;
+      }
+      const pacientes = await response.json();
+      const paciente = pacientes.find(p => p.email === email);
+      if (!paciente) {
+        return null;
+      }
+      return paciente.num_documento;
+    } catch (error) {
+      return null;
+    }
+  }
+
   let isEditing = false;
   let allDiagnosticos = [];
   let allMedicos = [];
@@ -403,6 +439,7 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               <p style="color: #6c757d; margin: 0.5rem 0; font-size: 0.9rem;">${evento.subtitulo}</p>
               <p style="margin: 0.75rem 0;">${evento.descripcion}</p>
+              ${evento.especialidad ? `<p style="margin: 0.5rem 0;"><strong>Especialidad:</strong> ${evento.especialidad}</p>` : ''}
               ${evento.sintomas ? `<p style="margin: 0.5rem 0;"><strong>Síntomas:</strong> ${evento.sintomas}</p>` : ''}
               ${evento.observaciones ? `<p style="margin: 0.5rem 0;"><strong>Observaciones:</strong> ${evento.observaciones}</p>` : ''}
               ${evento.tieneReceta && evento.receta.length > 0 ? `
@@ -590,7 +627,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (editMode && diagnostico) {
       inputId.value = diagnostico._id || "";
-      inputEmail.value = diagnostico.email || "";
+      // Buscar DNI por email
+      const dni = await buscarDNIPorEmail(diagnostico.email || "");
+      inputEmail.value = dni || "";
       inputMedico.value = diagnostico.idMedico?._id || "";
       
       if (diagnostico.fechaDiagnostico) {
@@ -700,6 +739,14 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
       
       try {
+        const dni = inputEmail.value.trim();
+        
+        // Validar DNI
+        if (!dni || !/^\d{8}$/.test(dni)) {
+          showToast("error", "Error", "Por favor, ingrese un DNI válido (8 dígitos)");
+          return;
+        }
+
         const tieneReceta = checkboxReceta.checked;
         const medicamentos = tieneReceta ? obtenerMedicamentos() : [];
         
@@ -708,8 +755,11 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
+        // Buscar el email del paciente por DNI
+        const email = await buscarEmailPorDNI(dni);
+
         const payload = {
-          email: inputEmail.value.trim().toLowerCase(),
+          email: email,
           idMedico: inputMedico.value,
           fechaDiagnostico: inputFecha.value,
           diagnostico: inputDiagnostico.value.trim(),

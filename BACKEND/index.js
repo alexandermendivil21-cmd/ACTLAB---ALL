@@ -16,6 +16,8 @@ import perfilTecnicoRoutes from "../BACKEND/Routes/perfil-tecnico.routes.js";
 import muestrasRoutes from "../BACKEND/Routes/muestras.routes.js";
 import connectDB from "../BACKEND/Config/mongodb.js";
 import open from "open";
+import cron from "node-cron";
+import { verificarYEnviarNotificaciones } from "./services/cita-notificaciones.service.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -30,6 +32,27 @@ app.use("/uploads", express.static(path.join(__dirname, "../BACKEND/uploads")));
 
 // Conexión MongoDB
 connectDB();
+
+// Configurar cron job para verificar notificaciones de citas
+// Se ejecuta cada 15 minutos
+cron.schedule("*/15 * * * *", async () => {
+  console.log("⏰ Ejecutando verificación de notificaciones de citas...");
+  try {
+    await verificarYEnviarNotificaciones();
+  } catch (error) {
+    console.error("❌ Error en el cron job de notificaciones:", error);
+  }
+});
+
+// También ejecutar una vez al iniciar el servidor (después de un breve delay para asegurar conexión DB)
+setTimeout(async () => {
+  console.log("🔍 Verificación inicial de notificaciones de citas...");
+  try {
+    await verificarYEnviarNotificaciones();
+  } catch (error) {
+    console.error("❌ Error en verificación inicial:", error);
+  }
+}, 10000); // 10 segundos después de iniciar
 
 // Rutas API
 app.post("/api/register", authentication.register);

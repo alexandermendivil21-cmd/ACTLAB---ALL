@@ -21,7 +21,7 @@
 
   <!-- Botón para volver a resultados -->
   <div class="actions-footer">
-    <button class="btn btn-outline" onclick="window.location.hash = '#resultados'">
+    <button class="btn btn-outline" onclick="if(typeof window.loadSection === 'function') { window.loadSection('resultados'); } else if(typeof loadSection === 'function') { loadSection('resultados'); } else { window.location.hash = '#resultados'; }">
       <i class="fa-solid fa-arrow-left"></i>
       Volver a Resultados
     </button>

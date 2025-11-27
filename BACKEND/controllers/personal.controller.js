@@ -38,6 +38,8 @@ export const getPersonal = async (req, res) => {
 export const getPersonalById = async (req, res) => {
   try {
     const { id } = req.params;
+    const { paciente } = req.query; // Si viene ?paciente=true, no devolver email ni celular
+    
     const personal = await Personal.findById(id, {
       tipo_documento: 1,
       num_documento: 1,
@@ -58,8 +60,17 @@ export const getPersonalById = async (req, res) => {
     if (!personal) {
       return res.status(404).json({ error: "Personal no encontrado" });
     }
+    
+    // Si la consulta viene del dashboard del paciente, no devolver email, celular ni dirección
+    let personalData = personal.toObject();
+    if (paciente === "true" || paciente === true) {
+      delete personalData.email;
+      delete personalData.celular;
+      delete personalData.direccion;
+    }
+    
     console.log("✅ Personal encontrado:", personal._id);
-    res.status(200).json(personal);
+    res.status(200).json(personalData);
   } catch (error) {
     console.error("Error al buscar personal:", error.message);
     res.status(500).json({ error: "Error al buscar personal", detalle: error.message });

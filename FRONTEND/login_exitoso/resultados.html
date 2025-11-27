@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Gestión de Resultados | SWALCACT</title>
+  <title>Gestión de Resultados | ACT - LAB</title>
 
   <!-- Fuentes & Iconos -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -21,8 +21,8 @@
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <img src="../assets2/img/logo.jpg" alt="Logo SWALCACT" class="brand-logo" />
-        <span class="brand-text">SWALCACT</span>
+        <img src="../assets2/img/logo.jpg" alt="Logo ACT - LAB" class="brand-logo" />
+        <span class="brand-text">ACT - LAB</span>
       </div>
 
       <nav class="sidebar-nav">
@@ -226,8 +226,8 @@
       </div>
       <form class="form-resultado" id="formMuestra">
         <div class="form-group">
-          <label for="inputEmailMuestra">Email del Paciente:</label>
-          <input type="email" id="inputEmailMuestra" required placeholder="correo@ejemplo.com" />
+          <label for="inputEmailMuestra">DNI del Paciente:</label>
+          <input type="text" id="inputEmailMuestra" required placeholder="12345678" maxlength="8" pattern="[0-9]{8}" />
         </div>
         <div class="form-group">
           <label for="inputCitaMuestra">Cita:</label>
@@ -266,9 +266,9 @@
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-cancelar" id="btnCancelarMuestra">Cancelar</button>
-          <button type="submit" class="btn-guardar">
-            <i class="fa-solid fa-plus"></i>
-            Agregar Muestra
+          <button type="submit" class="btn-guardar" id="btnGuardarMuestra">
+            <i class="fa-solid fa-plus" id="iconoBtnMuestra"></i>
+            <span id="textoBtnMuestra">Agregar Muestra</span>
           </button>
         </div>
       </form>
@@ -286,8 +286,8 @@
       </div>
       <form class="form-resultado" id="formResultado" enctype="multipart/form-data">
         <div class="form-group">
-          <label for="inputEmail">Email del Paciente:</label>
-          <input type="email" id="inputEmail" required placeholder="correo@ejemplo.com" />
+          <label for="inputEmail">DNI del Paciente:</label>
+          <input type="text" id="inputEmail" required placeholder="12345678" maxlength="8" pattern="[0-9]{8}" />
         </div>
         <div class="form-group">
           <label for="inputTipoExamen">Tipo de Examen:</label>
@@ -322,14 +322,6 @@
           <label for="inputObservaciones">Observaciones:</label>
           <textarea id="inputObservaciones" rows="3" placeholder="Observaciones adicionales (opcional)"></textarea>
         </div>
-        <div class="form-group">
-          <label for="inputEstado">Estado:</label>
-          <select id="inputEstado">
-            <option value="disponible">Disponible</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="procesando">Procesando</option>
-          </select>
-        </div>
         <div class="modal-actions">
           <button type="button" class="btn-cancelar" id="btnCancelar">Cancelar</button>
           <button type="submit" class="btn-guardar">
@@ -338,6 +330,45 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE ÉXITO -->
+  <div class="modal-overlay hidden" id="modalExito">
+    <div class="modal-content modal-exito">
+      <div class="modal-exito-icon">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <h3 class="modal-exito-titulo" id="modalExitoTitulo">¡Resultado Guardado Exitosamente!</h3>
+      <p class="modal-exito-mensaje" id="modalExitoMensaje">El resultado ha sido registrado correctamente.</p>
+      <button type="button" class="btn-exito" id="btnCerrarModalExito">Aceptar</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN -->
+  <div class="modal-overlay hidden" id="modalConfirmacion">
+    <div class="modal-content modal-confirmacion">
+      <div class="modal-confirmacion-icon">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 class="modal-confirmacion-titulo">Confirmar Eliminación</h3>
+      <p class="modal-confirmacion-mensaje" id="modalConfirmacionMensaje">¿Está seguro de eliminar este resultado?</p>
+      <div class="modal-confirmacion-buttons">
+        <button type="button" class="btn-cancelar-confirmacion" id="btnCancelarConfirmacion">Cancelar</button>
+        <button type="button" class="btn-confirmar-eliminar" id="btnConfirmarEliminar">Eliminar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE ERROR -->
+  <div class="modal-overlay hidden" id="modalError">
+    <div class="modal-content modal-error">
+      <div class="modal-error-icon">
+        <i class="fa-solid fa-circle-exclamation"></i>
+      </div>
+      <h3 class="modal-error-titulo">Error</h3>
+      <p class="modal-error-mensaje" id="modalErrorMensaje">Ha ocurrido un error.</p>
+      <button type="button" class="btn-error" id="btnCerrarModalError">Aceptar</button>
     </div>
   </div>
 

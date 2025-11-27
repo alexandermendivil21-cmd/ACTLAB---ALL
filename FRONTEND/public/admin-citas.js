@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let fechaActual = new Date();
   let vistaActual = 'mensual';
   let citaEditando = null;
+  let mapaEmailDNI = {}; // Mapa para convertir email a DNI
 
   // Referencias DOM
   const filtroEstado = document.getElementById('filtroEstado');
@@ -25,6 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCerrarModal = document.getElementById('btnCerrarModal');
   const btnCancelar = document.getElementById('btnCancelar');
   const formCita = document.getElementById('formCita');
+  const modalExito = document.getElementById('modalExito');
+  const btnCerrarModalExito = document.getElementById('btnCerrarModalExito');
+  const modalDetallesCita = document.getElementById('modalDetallesCita');
+  const btnCerrarModalDetalles = document.getElementById('btnCerrarModalDetalles');
+  const btnAceptarDetalles = document.getElementById('btnAceptarDetalles');
+  const modalError = document.getElementById('modalError');
+  const btnCerrarModalError = document.getElementById('btnCerrarModalError');
   const btnMesAnterior = document.getElementById('btnMesAnterior');
   const btnMesSiguiente = document.getElementById('btnMesSiguiente');
   const mesActual = document.getElementById('mesActual');
@@ -40,10 +48,31 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================
   // FUNCIONES DE INICIALIZACIÓN
   // ============================================
-  function init() {
+  async function init() {
+    await cargarMapaEmailDNI();
     cargarCitas();
     setupEventListeners();
     actualizarCalendario();
+  }
+
+  // Función para cargar el mapa de email a DNI
+  async function cargarMapaEmailDNI() {
+    try {
+      const response = await fetch('/api/pacientes');
+      if (!response.ok) {
+        console.warn('No se pudo cargar el mapa de pacientes');
+        return;
+      }
+      const pacientes = await response.json();
+      mapaEmailDNI = {};
+      pacientes.forEach(paciente => {
+        if (paciente.email && paciente.num_documento && paciente.tipo_documento === 'dni') {
+          mapaEmailDNI[paciente.email] = paciente.num_documento;
+        }
+      });
+    } catch (error) {
+      console.warn('Error al cargar mapa de pacientes:', error);
+    }
   }
 
   function setupEventListeners() {
@@ -65,6 +94,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     btnCerrarModal.addEventListener('click', cerrarModal);
     btnCancelar.addEventListener('click', cerrarModal);
+    btnCerrarModalExito.addEventListener('click', cerrarModalExito);
+    if (btnCerrarModalDetalles) {
+      btnCerrarModalDetalles.addEventListener('click', cerrarModalDetalles);
+    }
+    if (btnAceptarDetalles) {
+      btnAceptarDetalles.addEventListener('click', cerrarModalDetalles);
+    }
+    if (modalDetallesCita) {
+      modalDetallesCita.addEventListener('click', (e) => {
+        if (e.target === modalDetallesCita) cerrarModalDetalles();
+      });
+    }
+    btnCerrarModalError.addEventListener('click', cerrarModalError);
+    
+    // Validación de DNI en tiempo real
+    const inputDNI = document.getElementById('inputDNI');
+    if (inputDNI) {
+      inputDNI.addEventListener('input', function(e) {
+        // Solo permitir números
+        this.value = this.value.replace(/[^0-9]/g, '');
+        // Limitar a 8 dígitos
+        if (this.value.length > 8) {
+          this.value = this.value.slice(0, 8);
+        }
+      });
+    }
 
     // Botón de actualizar
     const btnRefreshCitas = document.getElementById('btnRefreshCitas');
@@ -111,6 +166,16 @@ document.addEventListener('DOMContentLoaded', () => {
     modalCita.addEventListener('click', (e) => {
       if (e.target === modalCita) cerrarModal();
     });
+    
+    // Cerrar modal de éxito al hacer clic fuera
+    modalExito.addEventListener('click', (e) => {
+      if (e.target === modalExito) cerrarModalExito();
+    });
+    
+    // Cerrar modal de error al hacer clic fuera
+    modalError.addEventListener('click', (e) => {
+      if (e.target === modalError) cerrarModalError();
+    });
   }
 
   // ============================================
@@ -118,6 +183,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================
   async function cargarCitas() {
     try {
+      // Asegurar que el mapa de email a DNI esté actualizado
+      if (Object.keys(mapaEmailDNI).length === 0) {
+        await cargarMapaEmailDNI();
+      }
+      
       // Obtener información del usuario desde sessionStorage
       const userCargo = sessionStorage.getItem("userCargo");
       const userEmail = sessionStorage.getItem("userEmail");
@@ -261,7 +331,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const pacienteFiltro = filtroPaciente.value.toLowerCase().trim();
     if (pacienteFiltro) {
       citasFiltradas = citasFiltradas.filter(cita => {
-        const emailMatch = cita.email.toLowerCase().includes(pacienteFiltro);
+        const emailMatch = cita.email && cita.email.toLowerCase().includes(pacienteFiltro);
+        const dniMatch = cita.email && mapaEmailDNI[cita.email] && 
+          mapaEmailDNI[cita.email].includes(pacienteFiltro);
         const nombreMatch = cita.paciente && cita.paciente.nombres && 
           cita.paciente.nombres.toLowerCase().includes(pacienteFiltro);
         const apellidoMatch = cita.paciente && cita.paciente.apellidos && 
@@ -271,7 +343,7 @@ document.addEventListener('DOMContentLoaded', () => {
           : '';
         const nombreCompletoMatch = nombreCompleto.includes(pacienteFiltro);
         
-        return emailMatch || nombreMatch || apellidoMatch || nombreCompletoMatch;
+        return emailMatch || dniMatch || nombreMatch || apellidoMatch || nombreCompletoMatch;
       });
     }
 
@@ -319,8 +391,10 @@ document.addEventListener('DOMContentLoaded', () => {
           nombrePaciente = cita.paciente.nombres;
         }
 
-        // Obtener email
-        const emailPaciente = cita.email || 'N/A';
+        // Obtener DNI del paciente
+        const dniPaciente = cita.email && mapaEmailDNI[cita.email] 
+          ? mapaEmailDNI[cita.email] 
+          : 'N/A';
 
         // Obtener motivo de la cita
         const motivoCita = cita.motivoCita || 'N/A';
@@ -329,7 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <tr>
             <td>${fechaFormateada} ${horaFormateada}</td>
             <td>${nombrePaciente}</td>
-            <td>${emailPaciente}</td>
+            <td>${dniPaciente}</td>
             <td>${cita.especialidad}</td>
             <td>${motivoCita}</td>
             <td>
@@ -374,7 +448,19 @@ document.addEventListener('DOMContentLoaded', () => {
     
     if (editando && cita) {
       modalTitulo.textContent = 'Editar Cita';
-      document.getElementById('inputEmail').value = cita.email || '';
+      // Buscar el DNI del paciente a partir del email
+      if (cita.email) {
+        buscarDNIPorEmail(cita.email).then(dni => {
+          if (dni) {
+            document.getElementById('inputDNI').value = dni;
+          }
+        }).catch(() => {
+          // Si no se encuentra, dejar vacío
+          document.getElementById('inputDNI').value = '';
+        });
+      } else {
+        document.getElementById('inputDNI').value = '';
+      }
       document.getElementById('inputTipoExamen').value = cita.especialidad || '';
       document.getElementById('inputFecha').value = cita.fechaCita ? new Date(cita.fechaCita).toISOString().split('T')[0] : '';
       document.getElementById('inputHorario').value = cita.horario || '';
@@ -404,6 +490,66 @@ document.addEventListener('DOMContentLoaded', () => {
     formCita.reset();
   }
 
+  function mostrarModalExito(mensaje) {
+    const mensajeElement = document.getElementById('modalExitoMensaje');
+    if (mensajeElement) {
+      mensajeElement.textContent = mensaje;
+    }
+    modalExito.classList.remove('hidden');
+  }
+
+  function cerrarModalExito() {
+    modalExito.classList.add('hidden');
+  }
+
+  function mostrarModalError(mensaje) {
+    const mensajeElement = document.getElementById('modalErrorMensaje');
+    if (mensajeElement) {
+      mensajeElement.textContent = mensaje;
+    }
+    modalError.classList.remove('hidden');
+  }
+
+  function cerrarModalError() {
+    modalError.classList.add('hidden');
+  }
+
+  // Función para buscar paciente por DNI y obtener su email
+  async function buscarEmailPorDNI(dni) {
+    try {
+      const response = await fetch('/api/pacientes');
+      if (!response.ok) {
+        throw new Error('Error al obtener lista de pacientes');
+      }
+      const pacientes = await response.json();
+      const paciente = pacientes.find(p => p.num_documento === dni && p.tipo_documento === 'dni');
+      if (!paciente) {
+        throw new Error('No se encontró un paciente con ese DNI');
+      }
+      return paciente.email;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Función para buscar DNI por email (para edición)
+  async function buscarDNIPorEmail(email) {
+    try {
+      const response = await fetch('/api/pacientes');
+      if (!response.ok) {
+        throw new Error('Error al obtener lista de pacientes');
+      }
+      const pacientes = await response.json();
+      const paciente = pacientes.find(p => p.email === email);
+      if (!paciente) {
+        return null;
+      }
+      return paciente.num_documento;
+    } catch (error) {
+      return null;
+    }
+  }
+
   async function guardarCita(e) {
     e.preventDefault();
     
@@ -415,28 +561,40 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const datos = {
-      email: document.getElementById('inputEmail').value,
-      especialidad: document.getElementById('inputTipoExamen').value,
-      fechaCita: document.getElementById('inputFecha').value,
-      horario: document.getElementById('inputHorario').value,
-      motivoCita: document.getElementById('inputMotivo').value,
-      estado: document.getElementById('inputEstado').value
-    };
+    const dni = document.getElementById('inputDNI').value.trim();
+    
+    // Validar DNI
+    if (!dni || !/^\d{8}$/.test(dni)) {
+      mostrarModalError('Por favor, ingrese un DNI válido (8 dígitos)');
+      return;
+    }
 
     try {
+      // Buscar el email del paciente por DNI
+      const email = await buscarEmailPorDNI(dni);
+
+      const datos = {
+        email: email,
+        especialidad: document.getElementById('inputTipoExamen').value,
+        fechaCita: document.getElementById('inputFecha').value,
+        horario: document.getElementById('inputHorario').value,
+        motivoCita: document.getElementById('inputMotivo').value,
+        estado: document.getElementById('inputEstado').value
+      };
+
       if (citaEditando) {
         await actualizarCita(citaEditando._id, datos);
-        alert('Cita actualizada correctamente');
+        mostrarModalExito('Cita actualizada correctamente');
       } else {
         await crearCita(datos);
-        alert('Cita creada correctamente');
+        mostrarModalExito('La cita ha sido agendada exitosamente');
       }
 
       cerrarModal();
       await cargarCitas();
     } catch (error) {
-      alert('Error: ' + error.message);
+      // Mostrar modal de error con el mensaje específico
+      mostrarModalError(error.message || 'Ha ocurrido un error al procesar la solicitud');
     }
   }
 
@@ -567,6 +725,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </div>
               <p style="color: #6c757d; margin: 0.5rem 0; font-size: 0.9rem;">${evento.subtitulo}</p>
               <p style="margin: 0.75rem 0;">${evento.descripcion}</p>
+              ${evento.especialidad ? `<p style="margin: 0.5rem 0;"><strong>Especialidad:</strong> ${evento.especialidad}</p>` : ''}
               ${evento.sintomas ? `<p style="margin: 0.5rem 0;"><strong>Síntomas:</strong> ${evento.sintomas}</p>` : ''}
               ${evento.observaciones ? `<p style="margin: 0.5rem 0;"><strong>Observaciones:</strong> ${evento.observaciones}</p>` : ''}
               ${evento.tieneReceta && evento.receta.length > 0 ? `
@@ -644,16 +803,62 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function mostrarModalDetalles(cita) {
+    const nombrePaciente = cita.paciente && cita.paciente.nombres && cita.paciente.apellidos
+      ? `${cita.paciente.nombres} ${cita.paciente.apellidos}`
+      : cita.paciente && cita.paciente.nombres
+      ? cita.paciente.nombres
+      : 'N/A';
+    
+    const fechaFormateada = new Date(cita.fechaCita).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+    
+    // Obtener DNI del paciente
+    const dniPaciente = cita.email && mapaEmailDNI[cita.email] 
+      ? mapaEmailDNI[cita.email] 
+      : 'N/A';
+    
+    // Mapear estado a texto legible
+    const estadoTexto = {
+      'pendiente': 'Pendiente',
+      'confirmada': 'Confirmada',
+      'completada': 'Completada',
+      'cancelada': 'Cancelada'
+    };
+    const estado = estadoTexto[cita.estado] || cita.estado || 'Pendiente';
+    
+    // Llenar los campos del modal
+    document.getElementById('detallePaciente').textContent = nombrePaciente;
+    document.getElementById('detalleDNI').textContent = dniPaciente;
+    document.getElementById('detalleTipo').textContent = cita.especialidad || 'N/A';
+    document.getElementById('detalleFecha').textContent = fechaFormateada;
+    document.getElementById('detalleHorario').textContent = cita.horario || 'N/A';
+    document.getElementById('detalleMotivo').textContent = cita.motivoCita || 'N/A';
+    
+    // Mostrar estado con estilo especial
+    const estadoElement = document.getElementById('detalleEstado');
+    estadoElement.textContent = estado.toLowerCase();
+    estadoElement.className = 'detalle-value estado-' + (cita.estado || 'pendiente');
+    
+    // Mostrar el modal
+    if (modalDetallesCita) {
+      modalDetallesCita.classList.remove('hidden');
+    }
+  }
+
+  function cerrarModalDetalles() {
+    if (modalDetallesCita) {
+      modalDetallesCita.classList.add('hidden');
+    }
+  }
+
   window.verCita = function(id) {
     const cita = todasLasCitas.find(c => c._id === id);
     if (cita) {
-      const nombrePaciente = cita.paciente && cita.paciente.nombres && cita.paciente.apellidos
-        ? `${cita.paciente.nombres} ${cita.paciente.apellidos}`
-        : cita.paciente && cita.paciente.nombres
-        ? cita.paciente.nombres
-        : 'N/A';
-      
-      alert(`Detalles de la cita:\n\nPaciente: ${nombrePaciente}\nEmail: ${cita.email}\nTipo: ${cita.especialidad}\nFecha: ${new Date(cita.fechaCita).toLocaleDateString()}\nHorario: ${cita.horario}\nMotivo: ${cita.motivoCita}\nEstado: ${cita.estado || 'pendiente'}`);
+      mostrarModalDetalles(cita);
     }
   };
 
