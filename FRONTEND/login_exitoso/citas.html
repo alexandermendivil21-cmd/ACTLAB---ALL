@@ -327,7 +327,7 @@
       <div class="modal-exito-icon">
         <i class="fa-solid fa-circle-check"></i>
       </div>
-      <h3 class="modal-exito-titulo">¡Cita Agendada Exitosamente!</h3>
+      <h3 class="modal-exito-titulo" id="modalExitoTituloCita">¡Cita Agendada Exitosamente!</h3>
       <p class="modal-exito-mensaje" id="modalExitoMensaje">La cita ha sido registrada correctamente.</p>
       <button type="button" class="btn-exito" id="btnCerrarModalExito">Aceptar</button>
     </div>
@@ -374,6 +374,21 @@
       </div>
       <div class="modal-detalles-footer">
         <button type="button" class="btn-aceptar-detalles" id="btnAceptarDetalles">Aceptar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE CONFIRMACIÓN (ELIMINAR CITA) -->
+  <div class="modal-overlay hidden" id="modalConfirmacion">
+    <div class="modal-content modal-confirmacion">
+      <div class="modal-confirmacion-icon">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <h3 class="modal-confirmacion-titulo">Confirmar Eliminación</h3>
+      <p class="modal-confirmacion-mensaje" id="modalConfirmacionMensaje">¿Está seguro de eliminar esta cita?</p>
+      <div class="modal-confirmacion-buttons">
+        <button type="button" class="btn-cancelar-confirmacion" id="btnCancelarConfirmacion">Cancelar</button>
+        <button type="button" class="btn-confirmar-eliminar" id="btnConfirmarEliminar">Eliminar</button>
       </div>
     </div>
   </div>

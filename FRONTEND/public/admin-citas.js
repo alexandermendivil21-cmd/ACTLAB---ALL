@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let vistaActual = 'mensual';
   let citaEditando = null;
   let mapaEmailDNI = {}; // Mapa para convertir email a DNI
+  let citaAEliminar = null; // ID de la cita a eliminar (para el modal de confirmación)
 
   // Referencias DOM
   const filtroEstado = document.getElementById('filtroEstado');
@@ -33,6 +34,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnAceptarDetalles = document.getElementById('btnAceptarDetalles');
   const modalError = document.getElementById('modalError');
   const btnCerrarModalError = document.getElementById('btnCerrarModalError');
+  const modalConfirmacion = document.getElementById('modalConfirmacion');
+  const btnCancelarConfirmacion = document.getElementById('btnCancelarConfirmacion');
+  const btnConfirmarEliminar = document.getElementById('btnConfirmarEliminar');
   const btnMesAnterior = document.getElementById('btnMesAnterior');
   const btnMesSiguiente = document.getElementById('btnMesSiguiente');
   const mesActual = document.getElementById('mesActual');
@@ -107,7 +111,42 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
     btnCerrarModalError.addEventListener('click', cerrarModalError);
-    
+
+    // Cerrar modal de confirmación al hacer clic fuera
+    if (modalConfirmacion) {
+      modalConfirmacion.addEventListener('click', (e) => {
+        if (e.target === modalConfirmacion) cerrarModalConfirmacion();
+      });
+    }
+
+    // Botones del modal de confirmación
+    if (btnCancelarConfirmacion) {
+      btnCancelarConfirmacion.addEventListener('click', () => {
+        citaAEliminar = null;
+        cerrarModalConfirmacion();
+      });
+    }
+
+    if (btnConfirmarEliminar) {
+      btnConfirmarEliminar.addEventListener('click', async () => {
+        if (!citaAEliminar) {
+          cerrarModalConfirmacion();
+          return;
+        }
+
+        try {
+          await eliminarCita(citaAEliminar);
+          mostrarModalExito('La cita ha sido eliminada correctamente.', 'Cita eliminada');
+          await cargarCitas();
+        } catch (error) {
+          mostrarModalError(error.message || 'Ha ocurrido un error al eliminar la cita');
+        } finally {
+          citaAEliminar = null;
+          cerrarModalConfirmacion();
+        }
+      });
+    }
+
     // Validación de DNI en tiempo real
     const inputDNI = document.getElementById('inputDNI');
     if (inputDNI) {
@@ -490,16 +529,39 @@ document.addEventListener('DOMContentLoaded', () => {
     formCita.reset();
   }
 
-  function mostrarModalExito(mensaje) {
+  function mostrarModalExito(mensaje, titulo) {
     const mensajeElement = document.getElementById('modalExitoMensaje');
+    const tituloElement = document.getElementById('modalExitoTituloCita');
+
     if (mensajeElement) {
       mensajeElement.textContent = mensaje;
     }
+
+    if (tituloElement) {
+      tituloElement.textContent = titulo || '¡Cita Agendada Exitosamente!';
+    }
+
     modalExito.classList.remove('hidden');
   }
 
   function cerrarModalExito() {
     modalExito.classList.add('hidden');
+  }
+
+  function mostrarModalConfirmacion(mensaje) {
+    const mensajeElement = document.getElementById('modalConfirmacionMensaje');
+    if (mensajeElement) {
+      mensajeElement.textContent = mensaje;
+    }
+    if (modalConfirmacion) {
+      modalConfirmacion.classList.remove('hidden');
+    }
+  }
+
+  function cerrarModalConfirmacion() {
+    if (modalConfirmacion) {
+      modalConfirmacion.classList.add('hidden');
+    }
   }
 
   function mostrarModalError(mensaje) {
@@ -584,10 +646,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
       if (citaEditando) {
         await actualizarCita(citaEditando._id, datos);
-        mostrarModalExito('Cita actualizada correctamente');
+        mostrarModalExito('Cita actualizada correctamente', 'Cita actualizada');
       } else {
         await crearCita(datos);
-        mostrarModalExito('La cita ha sido agendada exitosamente');
+        mostrarModalExito('La cita ha sido agendada exitosamente', '¡Cita Agendada Exitosamente!');
       }
 
       cerrarModal();
@@ -880,21 +942,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // Verificar si el usuario es médico
     const userCargo = sessionStorage.getItem("userCargo");
     if (userCargo === "medico") {
-      alert('No tienes permisos para eliminar citas');
-      return;
-    }
-    
-    if (!confirm('¿Está seguro de eliminar esta cita?')) {
+      mostrarModalError('No tienes permisos para eliminar citas');
       return;
     }
 
-    try {
-      await eliminarCita(id);
-      alert('Cita eliminada correctamente');
-      await cargarCitas();
-    } catch (error) {
-      alert('Error: ' + error.message);
-    }
+    citaAEliminar = id;
+    mostrarModalConfirmacion('¿Está seguro de eliminar esta cita?');
   };
 
   // ============================================
