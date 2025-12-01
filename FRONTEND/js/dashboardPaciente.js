@@ -15,6 +15,83 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================
   const isMobile = () => window.innerWidth <= 768;
 
+  // Ventana emergente simple para notificaciones (éxito / error)
+  const mostrarVentanaPerfil = (titulo, mensaje) => {
+    let overlay = document.getElementById("modal-perfil-mensaje");
+    let tituloEl;
+    let mensajeEl;
+
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "modal-perfil-mensaje";
+      overlay.style.position = "fixed";
+      overlay.style.inset = "0";
+      overlay.style.display = "flex";
+      overlay.style.alignItems = "center";
+      overlay.style.justifyContent = "center";
+      overlay.style.background = "rgba(0, 0, 0, 0.55)";
+      overlay.style.backdropFilter = "blur(3px)";
+      overlay.style.zIndex = "10000";
+
+      const content = document.createElement("div");
+      content.style.background = "#111827";
+      content.style.color = "#f9fafb";
+      content.style.padding = "1.5rem 2rem";
+      content.style.borderRadius = "0.75rem";
+      content.style.boxShadow = "0 18px 40px rgba(0,0,0,0.6)";
+      content.style.maxWidth = "360px";
+      content.style.width = "90%";
+      content.style.textAlign = "center";
+
+      tituloEl = document.createElement("h3");
+      tituloEl.id = "modal-perfil-mensaje-titulo";
+      tituloEl.style.margin = "0 0 0.75rem 0";
+      tituloEl.style.fontSize = "1.05rem";
+      tituloEl.style.fontWeight = "600";
+
+      mensajeEl = document.createElement("p");
+      mensajeEl.id = "modal-perfil-mensaje-texto";
+      mensajeEl.style.margin = "0 0 1.25rem 0";
+      mensajeEl.style.fontSize = "0.95rem";
+      mensajeEl.style.color = "#d1d5db";
+
+      const boton = document.createElement("button");
+      boton.type = "button";
+      boton.textContent = "Aceptar";
+      boton.style.padding = "0.5rem 1.5rem";
+      boton.style.borderRadius = "999px";
+      boton.style.border = "none";
+      boton.style.cursor = "pointer";
+      boton.style.background = "#2563eb";
+      boton.style.color = "#f9fafb";
+      boton.style.fontWeight = "600";
+      boton.style.fontSize = "0.9rem";
+
+      boton.addEventListener("click", () => {
+        overlay.style.display = "none";
+      });
+
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) {
+          overlay.style.display = "none";
+        }
+      });
+
+      content.appendChild(tituloEl);
+      content.appendChild(mensajeEl);
+      content.appendChild(boton);
+      overlay.appendChild(content);
+      document.body.appendChild(overlay);
+    } else {
+      tituloEl = document.getElementById("modal-perfil-mensaje-titulo");
+      mensajeEl = document.getElementById("modal-perfil-mensaje-texto");
+    }
+
+    if (tituloEl) tituloEl.textContent = titulo;
+    if (mensajeEl) mensajeEl.textContent = mensaje;
+    overlay.style.display = "flex";
+  };
+
   // Función para crear y mostrar el modal de confirmación de cierre de sesión
   const mostrarModalCerrarSesion = function(callback) {
     // Crear el modal si no existe
@@ -2675,7 +2752,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           const result = await res.json();
-          alert("Perfil actualizado correctamente");
+          mostrarVentanaPerfil("Perfil actualizado", "Perfil actualizado correctamente");
           profileView.style.display = "block";
           formEdit.style.display = "none";
           btnEdit.style.display = "block";
@@ -2684,7 +2761,7 @@ document.addEventListener("DOMContentLoaded", () => {
           await cargarPerfil(email);
         } catch (err) {
           console.error("Error actualizando perfil:", err);
-          alert(err.message || "Error al actualizar el perfil");
+          mostrarVentanaPerfil("Error", err.message || "Error al actualizar el perfil");
         }
       });
     }
