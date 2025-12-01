@@ -3179,7 +3179,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   };
-
+  
   // Mostrar modal de confirmación de pago (ventana emergente personalizada)
   const mostrarModalConfirmacionPago = (monto, metodoNombre, onConfirm) => {
     const modal = document.getElementById('modalConfirmarPago');

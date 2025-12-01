@@ -8,32 +8,44 @@ document.addEventListener('DOMContentLoaded', () => {
   let muestrasCargadas = false; // Bandera para evitar recargas innecesarias
   let userCargo = sessionStorage.getItem('userCargo') || '';
   let citasCargadas = []; // Almacenar las citas cargadas para obtener la especialidad
+  let medicoActual = null; // Información del médico logueado (si aplica)
 
-  // Actualizar avatar del topbar para técnico de laboratorio (si aplica)
+  // Actualizar avatar del topbar y cargar información de usuario según cargo
   (async () => {
     try {
       const userCargoSesion = sessionStorage.getItem('userCargo');
       const userEmailSesion = sessionStorage.getItem('userEmail');
-      if (userCargoSesion !== 'tecnico' || !userEmailSesion) return;
+      if (!userEmailSesion) return;
 
-      const res = await fetch(`/api/perfil-tecnico?email=${encodeURIComponent(userEmailSesion)}`);
-      if (!res.ok) return;
-      const tecnico = await res.json();
+      // Técnico de laboratorio: actualizar avatar de técnico
+      if (userCargoSesion === 'tecnico') {
+        const res = await fetch(`/api/perfil-tecnico?email=${encodeURIComponent(userEmailSesion)}`);
+        if (!res.ok) return;
+        const tecnico = await res.json();
 
-      const topbarAvatar = document.getElementById('topbar-avatar-tecnico');
-      const defaultAvatar = '../assets2/img/avatar-sofia.jpg';
-      const avatarUrl = tecnico.imagen
-        ? `http://localhost:5000${tecnico.imagen}`
-        : defaultAvatar;
+        const topbarAvatar = document.getElementById('topbar-avatar-tecnico');
+        const defaultAvatar = '../assets2/img/avatar-sofia.jpg';
+        const avatarUrl = tecnico.imagen
+          ? `http://localhost:5000${tecnico.imagen}`
+          : defaultAvatar;
 
-      if (topbarAvatar) {
-        topbarAvatar.src = avatarUrl;
-        topbarAvatar.onerror = () => {
-          topbarAvatar.src = defaultAvatar;
-        };
+        if (topbarAvatar) {
+          topbarAvatar.src = avatarUrl;
+          topbarAvatar.onerror = () => {
+            topbarAvatar.src = defaultAvatar;
+          };
+        }
+      }
+
+      // Médico: obtener su perfil (para conocer especialidad)
+      if (userCargoSesion === 'medico') {
+        const resMedico = await fetch(`/api/perfil-medico?email=${encodeURIComponent(userEmailSesion)}`);
+        if (resMedico.ok) {
+          medicoActual = await resMedico.json();
+        }
       }
     } catch (error) {
-      console.warn('No se pudo actualizar el avatar del técnico en el topbar:', error);
+      console.warn('No se pudo actualizar la información del usuario en resultados:', error);
     }
   })();
 
@@ -78,8 +90,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // FUNCIONES DE INICIALIZACIÓN
   // ============================================
   function init() {
-    cargarResultados();
-    cargarMuestras();
+    configurarVistaPorCargo().then(() => {
+      cargarResultados();
+      cargarMuestras();
+    });
     setupEventListeners();
 
     // Configurar click en avatar del topbar para ir al perfil del técnico
@@ -88,6 +102,17 @@ document.addEventListener('DOMContentLoaded', () => {
       topbarAvatar.addEventListener('click', () => {
         window.location.href = '/admin/perfil-tecnico';
       });
+    }
+  }
+
+  // Ajustar visibilidad y permisos según el cargo
+  async function configurarVistaPorCargo() {
+    const cargo = userCargo;
+
+    // Si es médico: solo lectura, sin crear ni eliminar resultados/muestras
+    if (cargo === 'medico') {
+      if (btnAgregarResultado) btnAgregarResultado.style.display = 'none';
+      if (btnAgregarMuestra) btnAgregarMuestra.style.display = 'none';
     }
   }
 
@@ -685,7 +710,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // ============================================
   async function cargarResultados() {
     try {
-      const response = await fetch('/api/admin/resultados');
+      let url = '/api/admin/resultados';
+
+      // Si el usuario es médico y tiene especialidad, filtrar resultados por su especialidad
+      if (userCargo === 'medico' && medicoActual && medicoActual.especialidad && medicoActual.especialidad !== 'N/A') {
+        const params = new URLSearchParams();
+        params.append('tipoExamen', medicoActual.especialidad);
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await fetch(url);
       
       if (!response.ok) {
         throw new Error('Error al cargar los resultados');
@@ -829,6 +863,8 @@ document.addEventListener('DOMContentLoaded', () => {
     tablaResultados.classList.remove('hidden');
     emptyState.classList.add('hidden');
 
+    const esMedico = userCargo === 'medico';
+
     resultadosBody.innerHTML = resultadosFiltrados
       .sort((a, b) => new Date(b.fechaResultado) - new Date(a.fechaResultado))
       .map(resultado => {
@@ -838,6 +874,23 @@ document.addEventListener('DOMContentLoaded', () => {
           month: '2-digit',
           year: 'numeric'
         });
+
+        const botonesAccion = esMedico
+          ? `
+            <button class="btn-action view" onclick="verPDF('${resultado._id}')" title="Ver PDF">
+              <i class="fa-solid fa-eye"></i>
+            </button>
+          `
+          : `
+            <div class="acciones-buttons">
+              <button class="btn-action view" onclick="verPDF('${resultado._id}')" title="Ver PDF">
+                <i class="fa-solid fa-eye"></i>
+              </button>
+              <button class="btn-action delete" onclick="eliminarResultadoConfirm('${resultado._id}')" title="Eliminar">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          `;
 
         return `
           <tr>
@@ -850,14 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
               </span>
             </td>
             <td>
-              <div class="acciones-buttons">
-                <button class="btn-action view" onclick="verPDF('${resultado._id}')" title="Ver PDF">
-                  <i class="fa-solid fa-eye"></i>
-                </button>
-                <button class="btn-action delete" onclick="eliminarResultadoConfirm('${resultado._id}')" title="Eliminar">
-                  <i class="fa-solid fa-trash"></i>
-                </button>
-              </div>
+          ${botonesAccion}
             </td>
           </tr>
         `;
@@ -869,6 +915,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // FUNCIONES DEL MODAL
   // ============================================
   async function abrirModal(editando, resultado = null) {
+    // Los médicos solo pueden visualizar resultados, no crearlos ni editarlos
+    if (userCargo === 'medico') {
+      mostrarModalError('Los médicos solo pueden visualizar los resultados de su especialidad.');
+      return;
+    }
     resultadoEditando = editando ? resultado : null;
     const modalTitulo = document.getElementById('modalTitulo');
     

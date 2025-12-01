@@ -8,23 +8,34 @@ import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Obtener todos los resultados (admin)
+// Obtener resultados
+// - Admin: puede ver todos los resultados o filtrarlos con query params
+// - Técnico: usa la misma lógica que admin (filtra si envía parámetros)
+// - Médico: puede filtrar por su especialidad (tipoExamen) desde el frontend
 export const getResultados = async (req, res) => {
   try {
-    const { email } = req.query;
-    
-    // Si se proporciona email, filtrar por email del paciente
-    // Si no, devolver todos los resultados (para admin)
-    const query = email ? { email } : {};
-    const resultados = await Resultado.find(query)
-      .sort({ fechaResultado: -1 });
-    
+    const { email, tipoExamen } = req.query;
+
+    const query = {};
+
+    // Filtro por paciente (email)
+    if (email) {
+      query.email = email.toLowerCase();
+    }
+
+    // Filtro por tipo de examen / especialidad
+    if (tipoExamen) {
+      query.tipoExamen = tipoExamen;
+    }
+
+    const resultados = await Resultado.find(query).sort({ fechaResultado: -1 });
+
     res.status(200).json(resultados);
   } catch (error) {
     console.error("Error al obtener resultados:", error);
-    res.status(500).json({ 
-      error: "Error al obtener los resultados", 
-      detalle: error.message 
+    res.status(500).json({
+      error: "Error al obtener los resultados",
+      detalle: error.message,
     });
   }
 };

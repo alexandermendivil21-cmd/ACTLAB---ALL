@@ -10,7 +10,6 @@
       "/admin",           // Inicio
       "/admin/pacientes", // Pacientes
       "/admin/personal",  // Personal
-      "/admin/resultados", // Resultados
       "/admin/pagos",     // Pagos
       "/admin/reportes"   // Reportes
     ];
@@ -58,7 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
       "/admin",           // Inicio
       "/admin/pacientes", // Pacientes
       "/admin/personal",  // Personal
-      "/admin/resultados", // Resultados
       "/admin/pagos",     // Pagos
       "/admin/reportes"   // Reportes
     ];
