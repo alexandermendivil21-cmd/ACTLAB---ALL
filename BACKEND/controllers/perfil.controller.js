@@ -29,7 +29,8 @@ export const getPerfil = async (req, res) => {
       tipo_documento: 1,
       num_documento: 1,
       fecha_emision: 1,
-      imagen: 1
+      imagen: 1,
+      informacionMedica: 1
     });
 
     if (!usuario) {

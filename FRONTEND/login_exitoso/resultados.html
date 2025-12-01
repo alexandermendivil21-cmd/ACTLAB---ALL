@@ -84,7 +84,7 @@
           </button>
         </div>
         <div class="right">
-          <img src="../assets2/img/avatar-sofia.jpg" alt="Admin" class="avatar small-avatar" />
+          <img id="topbar-avatar-tecnico" src="../assets2/img/avatar-sofia.jpg" alt="Avatar del técnico" class="avatar small-avatar" style="cursor: pointer;" />
         </div>
       </header>
 
@@ -304,8 +304,8 @@
           </select>
         </div>
         <div class="form-group">
-          <label for="inputFechaExamen">Fecha del Examen:</label>
-          <input type="date" id="inputFechaExamen" required />
+          <label for="inputFechaExamen">Fecha y hora del Examen:</label>
+          <input type="datetime-local" id="inputFechaExamen" required readonly style="background-color: #f3f4f6; cursor: not-allowed;" />
         </div>
         <div class="form-group">
           <label for="inputPDF">Archivo PDF:</label>

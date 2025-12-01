@@ -320,6 +320,49 @@ export const getPacientesPorMes = async (req, res) => {
   }
 };
 
+// --- Actualizar información médica básica de un paciente ---
+export const updateInformacionMedica = async (req, res) => {
+  try {
+    const { email } = req.query;
+    const { informacionMedica } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ 
+        error: "El email es requerido" 
+      });
+    }
+
+    if (!informacionMedica) {
+      return res.status(400).json({ 
+        error: "La información médica es requerida" 
+      });
+    }
+
+    const paciente = await Usuario.findOneAndUpdate(
+      { email: email.toLowerCase() },
+      { informacionMedica },
+      { new: true, select: 'nombres apellidos email informacionMedica' }
+    );
+
+    if (!paciente) {
+      return res.status(404).json({ 
+        error: "Paciente no encontrado" 
+      });
+    }
+
+    res.status(200).json({
+      message: "Información médica actualizada correctamente",
+      paciente: paciente
+    });
+  } catch (error) {
+    console.error("Error al actualizar información médica:", error);
+    res.status(500).json({ 
+      error: "Error al actualizar la información médica", 
+      detalle: error.message 
+    });
+  }
+};
+
 // --- Obtener historial médico completo de un paciente ---
 export const getHistorialMedico = async (req, res) => {
   try {

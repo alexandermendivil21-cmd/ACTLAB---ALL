@@ -111,14 +111,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Actualizar imagen de perfil
       const profileAvatar = document.getElementById("profile-avatar");
+      const topbarAvatar = document.getElementById("topbar-avatar-medico");
       const defaultAvatar = "../assets2/img/avatar-sofia.jpg";
       const avatarUrl = medico.imagen 
         ? `http://localhost:5000${medico.imagen}` 
         : defaultAvatar;
-      profileAvatar.src = avatarUrl;
-      profileAvatar.onerror = () => {
-        profileAvatar.src = defaultAvatar;
-      };
+      
+      if (profileAvatar) {
+        profileAvatar.src = avatarUrl;
+        profileAvatar.onerror = () => {
+          profileAvatar.src = defaultAvatar;
+        };
+      }
+
+      // Actualizar avatar del topbar
+      if (topbarAvatar) {
+        topbarAvatar.src = avatarUrl;
+        topbarAvatar.onerror = () => {
+          topbarAvatar.src = defaultAvatar;
+        };
+      }
 
       // Cargar horarios
       horariosData = medico.horariosDisponibilidad || [];
@@ -510,6 +522,20 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast("error", "Error", error.message || "No se pudieron guardar los horarios");
     }
   });
+
+  // Configurar el avatar del topbar para redirigir al perfil
+  const topbarAvatar = document.getElementById("topbar-avatar-medico");
+  if (topbarAvatar) {
+    topbarAvatar.addEventListener("click", () => {
+      // Si ya estamos en el perfil, hacer scroll al inicio
+      // Si estamos en otra página, redirigir al perfil
+      if (window.location.pathname.includes('/perfil')) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        window.location.href = "/admin/perfil";
+      }
+    });
+  }
 
   // Cargar perfil al iniciar
   cargarPerfil();

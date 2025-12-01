@@ -111,12 +111,83 @@
       </form>
     </div>
 
-    <!-- Información médica (para futura implementación) -->
-    <div class="card">
-      <h3>Información médica</h3>
-      <div class="detail-row">
-        <i class="fa-solid fa-info-circle"></i>
-        <span style="color: #777; font-size: 0.9rem;">Completar información médica próximamente</span>
+    <!-- Información médica básica -->
+    <div class="card" id="info-medica-card">
+      <div style="margin-bottom: 1rem;">
+        <h3>Información médica básica</h3>
+      </div>
+      <div id="info-medica-view">
+        <div style="display: grid; gap: 1rem;">
+          <!-- Alergias -->
+          <div style="padding: 1rem; background: #fef2f2; border-radius: 8px; border-left: 4px solid #ef4444;">
+            <h4 style="margin: 0 0 0.75rem 0; color: #dc2626; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+              Alergias
+            </h4>
+            <div id="profile-alergias" style="color: #6b7280; font-size: 0.9rem;">
+              <span style="color: #9ca3af;">No se han registrado alergias</span>
+            </div>
+          </div>
+
+          <!-- Medicamentos Actuales -->
+          <div style="padding: 1rem; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <h4 style="margin: 0 0 0.75rem 0; color: #2563eb; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-pills"></i>
+              Medicamentos Actuales
+            </h4>
+            <div id="profile-medicamentos" style="color: #6b7280; font-size: 0.9rem;">
+              <span style="color: #9ca3af;">No se han registrado medicamentos actuales</span>
+            </div>
+          </div>
+
+          <!-- Condiciones Médicas -->
+          <div style="padding: 1rem; background: #fef3c7; border-radius: 8px; border-left: 4px solid #f59e0b;">
+            <h4 style="margin: 0 0 0.75rem 0; color: #d97706; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-file-medical"></i>
+              Condiciones Médicas
+            </h4>
+            <div id="profile-condiciones" style="color: #6b7280; font-size: 0.9rem;">
+              <span style="color: #9ca3af;">No se han registrado condiciones médicas</span>
+            </div>
+          </div>
+
+          <!-- Información Adicional -->
+          <div style="padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+            <h4 style="margin: 0 0 0.75rem 0; color: #1976d2; font-size: 0.95rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+              <i class="fa-solid fa-info-circle"></i>
+              Información Adicional
+            </h4>
+            <div style="display: grid; gap: 0.5rem; font-size: 0.9rem;">
+              <div class="detail-row">
+                <i class="fa-solid fa-tint" style="color: #dc2626;"></i>
+                <span><strong>Grupo Sanguíneo:</strong> <span id="profile-grupo-sanguineo" style="color: #6b7280;">No especificado</span></span>
+              </div>
+              <div id="profile-contacto-emergencia" style="display: none; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb;">
+                <div style="margin-bottom: 0.5rem;">
+                  <strong style="color: #374151;">Contacto de Emergencia</strong>
+                </div>
+                <div class="detail-row" style="margin-left: 1rem;">
+                  <i class="fa-solid fa-user"></i>
+                  <span id="profile-contacto-nombre" style="color: #6b7280;">-</span>
+                </div>
+                <div class="detail-row" style="margin-left: 1rem;">
+                  <i class="fa-solid fa-users"></i>
+                  <span id="profile-contacto-relacion" style="color: #6b7280;">-</span>
+                </div>
+                <div class="detail-row" style="margin-left: 1rem;">
+                  <i class="fa-solid fa-phone"></i>
+                  <span id="profile-contacto-telefono" style="color: #6b7280;">-</span>
+                </div>
+              </div>
+              <div id="profile-notas-medicas" style="display: none; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid #e5e7eb;">
+                <div style="margin-bottom: 0.5rem;">
+                  <strong style="color: #374151;">Notas Médicas</strong>
+                </div>
+                <p id="profile-notas-texto" style="color: #6b7280; margin: 0; white-space: pre-wrap; font-size: 0.9rem;"></p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

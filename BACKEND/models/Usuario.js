@@ -65,6 +65,47 @@ const usuarioSchema = new mongoose.Schema(
       default: null,
       trim: true,
     },
+    informacionMedica: {
+      alergias: {
+        type: [String],
+        default: [],
+      },
+      medicamentosActuales: {
+        type: [String],
+        default: [],
+      },
+      condicionesMedicas: {
+        type: [String],
+        default: [],
+      },
+      grupoSanguineo: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      contactoEmergencia: {
+        nombre: {
+          type: String,
+          default: "",
+          trim: true,
+        },
+        relacion: {
+          type: String,
+          default: "",
+          trim: true,
+        },
+        telefono: {
+          type: String,
+          default: "",
+          trim: true,
+        },
+      },
+      notasMedicas: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+    },
     /*password_create: {
       type: String,
       required: true,

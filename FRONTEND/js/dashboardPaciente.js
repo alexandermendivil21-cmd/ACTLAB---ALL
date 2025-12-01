@@ -2417,6 +2417,74 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("profile-celular").textContent = data.celular || "-";
       document.getElementById("profile-direccion").textContent = data.direccion || "-";
 
+      // Cargar y mostrar información médica básica
+      const infoMedica = data.informacionMedica || {};
+      const alergias = infoMedica.alergias || [];
+      const medicamentos = infoMedica.medicamentosActuales || [];
+      const condiciones = infoMedica.condicionesMedicas || [];
+      const grupoSanguineo = infoMedica.grupoSanguineo || '';
+      const contactoEmergencia = infoMedica.contactoEmergencia || {};
+      const notasMedicas = infoMedica.notasMedicas || '';
+
+      // Mostrar alergias
+      const profileAlergias = document.getElementById("profile-alergias");
+      if (profileAlergias) {
+        if (alergias.length > 0) {
+          profileAlergias.innerHTML = `<ul style="margin: 0; padding-left: 1.5rem; color: #6b7280;">${alergias.map(a => `<li style="margin: 0.25rem 0;">${a}</li>`).join('')}</ul>`;
+        } else {
+          profileAlergias.innerHTML = '<span style="color: #9ca3af;">No se han registrado alergias</span>';
+        }
+      }
+
+      // Mostrar medicamentos
+      const profileMedicamentos = document.getElementById("profile-medicamentos");
+      if (profileMedicamentos) {
+        if (medicamentos.length > 0) {
+          profileMedicamentos.innerHTML = `<ul style="margin: 0; padding-left: 1.5rem; color: #6b7280;">${medicamentos.map(m => `<li style="margin: 0.25rem 0;">${m}</li>`).join('')}</ul>`;
+        } else {
+          profileMedicamentos.innerHTML = '<span style="color: #9ca3af;">No se han registrado medicamentos actuales</span>';
+        }
+      }
+
+      // Mostrar condiciones médicas
+      const profileCondiciones = document.getElementById("profile-condiciones");
+      if (profileCondiciones) {
+        if (condiciones.length > 0) {
+          profileCondiciones.innerHTML = `<ul style="margin: 0; padding-left: 1.5rem; color: #6b7280;">${condiciones.map(c => `<li style="margin: 0.25rem 0;">${c}</li>`).join('')}</ul>`;
+        } else {
+          profileCondiciones.innerHTML = '<span style="color: #9ca3af;">No se han registrado condiciones médicas</span>';
+        }
+      }
+
+      // Mostrar grupo sanguíneo
+      const profileGrupoSanguineo = document.getElementById("profile-grupo-sanguineo");
+      if (profileGrupoSanguineo) {
+        profileGrupoSanguineo.textContent = grupoSanguineo || 'No especificado';
+      }
+
+      // Mostrar contacto de emergencia
+      const profileContactoEmergencia = document.getElementById("profile-contacto-emergencia");
+      if (profileContactoEmergencia && contactoEmergencia.nombre) {
+        profileContactoEmergencia.style.display = 'block';
+        document.getElementById("profile-contacto-nombre").textContent = contactoEmergencia.nombre || '-';
+        document.getElementById("profile-contacto-relacion").textContent = contactoEmergencia.relacion || '-';
+        document.getElementById("profile-contacto-telefono").textContent = contactoEmergencia.telefono || '-';
+      } else if (profileContactoEmergencia) {
+        profileContactoEmergencia.style.display = 'none';
+      }
+
+      // Mostrar notas médicas
+      const profileNotasMedicas = document.getElementById("profile-notas-medicas");
+      const profileNotasTexto = document.getElementById("profile-notas-texto");
+      if (profileNotasMedicas && profileNotasTexto) {
+        if (notasMedicas) {
+          profileNotasMedicas.style.display = 'block';
+          profileNotasTexto.textContent = notasMedicas;
+        } else {
+          profileNotasMedicas.style.display = 'none';
+        }
+      }
+
       // Actualizar imagen de perfil en la vista de perfil
       const profileAvatar = document.getElementById("profile-avatar");
       const defaultAvatar = "assets2/img/avatar-sofia.jpg";
@@ -2569,6 +2637,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (email) cargarPerfil(email);
       });
     }
+
 
     if (formEdit) {
       formEdit.addEventListener("submit", async (e) => {
@@ -2728,11 +2797,13 @@ document.addEventListener("DOMContentLoaded", () => {
         console.warn('Error al cargar perfil:', e);
       }
       
-      // Guardar nombre para usar en Yape
+      // Guardar nombre para usar en Yape/Plin/Efectivo
       window.pacienteNombre = nombreCompleto;
       
-      // Actualizar datos de Yape
+      // Actualizar datos de Yape, Plin y Efectivo
       actualizarDatosYape(cita, precio, email);
+      actualizarDatosPlin(cita, precio, email);
+      actualizarDatosEfectivo(cita, precio, email);
       
       // Configurar el formulario de pago
       const formPago = document.getElementById('formPago');
@@ -2763,9 +2834,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const btnCancelar = document.getElementById('btnCancelarPago');
       if (btnCancelar) {
         btnCancelar.onclick = () => {
-          if (confirm('¿Está seguro que desea cancelar el pago?')) {
+          mostrarModalCancelarPago(() => {
             loadSection('pagos');
-          }
+          });
         };
       }
       
@@ -2811,6 +2882,88 @@ document.addEventListener("DOMContentLoaded", () => {
     generarQRYape(cita, monto, email);
   };
   
+  // Función para actualizar datos de Plin
+  const actualizarDatosPlin = (cita, monto, email) => {
+    const plinNombre = document.getElementById('plinNombrePaciente');
+    const plinCorreo = document.getElementById('plinCorreoPaciente');
+    const plinFecha = document.getElementById('plinFechaCita');
+    const plinHorario = document.getElementById('plinHorarioCita');
+    const plinImporte = document.getElementById('plinImporte');
+    
+    if (plinNombre) plinNombre.textContent = window.pacienteNombre || 'Usuario';
+    if (plinCorreo) plinCorreo.textContent = email || '-';
+    
+    if (plinFecha && cita.fechaCita) {
+      const fecha = new Date(cita.fechaCita);
+      plinFecha.textContent = fecha.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    }
+    
+    if (plinHorario) plinHorario.textContent = cita.horario || '-';
+    if (plinImporte) plinImporte.textContent = `S/ ${monto.toFixed(2)}`;
+    
+    // Generar QR para Plin
+    generarQRPlin(cita, monto, email);
+  };
+  
+  // Función para generar QR code de Plin
+  const generarQRPlin = (cita, monto, email) => {
+    const datosQR = JSON.stringify({
+      tipo: 'plin',
+      monto: monto.toFixed(2),
+      referencia: `CITA-${cita._id}`,
+      paciente: window.pacienteNombre || 'Usuario',
+      fecha: new Date().toISOString()
+    });
+    
+    const qrContainer = document.getElementById('qrCodePlin');
+    if (qrContainer) {
+      qrContainer.innerHTML = '';
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(datosQR)}`;
+      const img = document.createElement('img');
+      img.src = qrUrl;
+      img.alt = 'QR Code Plin';
+      img.style.width = '100%';
+      img.style.height = '100%';
+      img.style.borderRadius = '8px';
+      qrContainer.appendChild(img);
+    }
+  };
+
+  // Función para actualizar datos de pago en efectivo
+  const actualizarDatosEfectivo = (cita, monto, email) => {
+    const efectivoNombre = document.getElementById('efectivoNombrePaciente');
+    const efectivoCorreo = document.getElementById('efectivoCorreoPaciente');
+    const efectivoFecha = document.getElementById('efectivoFechaCita');
+    const efectivoHorario = document.getElementById('efectivoHorarioCita');
+    const efectivoImporte = document.getElementById('efectivoImporte');
+    const efectivoCodigo = document.getElementById('efectivoCodigo');
+    
+    if (efectivoNombre) efectivoNombre.textContent = window.pacienteNombre || 'Usuario';
+    if (efectivoCorreo) efectivoCorreo.textContent = email || '-';
+    
+    if (efectivoFecha && cita.fechaCita) {
+      const fecha = new Date(cita.fechaCita);
+      efectivoFecha.textContent = fecha.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    }
+    
+    if (efectivoHorario) efectivoHorario.textContent = cita.horario || '-';
+    if (efectivoImporte) efectivoImporte.textContent = `S/ ${monto.toFixed(2)}`;
+    
+    // Generar código de pago en ventanilla basado en la cita
+    if (efectivoCodigo) {
+      const base = (cita._id || 'CITA').toString().slice(-6).toUpperCase();
+      efectivoCodigo.textContent = `EF-${base}`;
+    }
+  };
+  
   // Función para generar QR code de Yape
   const generarQRYape = (cita, monto, email) => {
     // Datos para el QR (simulando datos de pago Yape)
@@ -2845,6 +2998,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const radios = document.querySelectorAll('input[name="metodo"]');
     const camposTarjeta = document.getElementById('camposTarjeta');
     const seccionYape = document.getElementById('seccionYape');
+    const seccionPlin = document.getElementById('seccionPlin');
+    const seccionEfectivo = document.getElementById('seccionEfectivo');
     
     radios.forEach(radio => {
       radio.addEventListener('change', (e) => {
@@ -2863,12 +3018,28 @@ document.addEventListener("DOMContentLoaded", () => {
         if (metodo === 'tarjeta') {
           if (camposTarjeta) camposTarjeta.style.display = 'block';
           if (seccionYape) seccionYape.style.display = 'none';
+          if (seccionPlin) seccionPlin.style.display = 'none';
+          if (seccionEfectivo) seccionEfectivo.style.display = 'none';
         } else if (metodo === 'yape') {
           if (camposTarjeta) camposTarjeta.style.display = 'none';
           if (seccionYape) seccionYape.style.display = 'block';
+          if (seccionPlin) seccionPlin.style.display = 'none';
+          if (seccionEfectivo) seccionEfectivo.style.display = 'none';
+        } else if (metodo === 'plin') {
+          if (camposTarjeta) camposTarjeta.style.display = 'none';
+          if (seccionYape) seccionYape.style.display = 'none';
+          if (seccionPlin) seccionPlin.style.display = 'block';
+          if (seccionEfectivo) seccionEfectivo.style.display = 'none';
+        } else if (metodo === 'efectivo') {
+          if (camposTarjeta) camposTarjeta.style.display = 'none';
+          if (seccionYape) seccionYape.style.display = 'none';
+          if (seccionPlin) seccionPlin.style.display = 'none';
+          if (seccionEfectivo) seccionEfectivo.style.display = 'block';
         } else {
           if (camposTarjeta) camposTarjeta.style.display = 'none';
           if (seccionYape) seccionYape.style.display = 'none';
+          if (seccionPlin) seccionPlin.style.display = 'none';
+          if (seccionEfectivo) seccionEfectivo.style.display = 'none';
         }
       });
     });
@@ -2931,8 +3102,89 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   };
+
+  // Mostrar modal de confirmación de pago (ventana emergente personalizada)
+  const mostrarModalConfirmacionPago = (monto, metodoNombre, onConfirm) => {
+    const modal = document.getElementById('modalConfirmarPago');
+    const tituloEl = document.getElementById('modalConfirmarTitulo');
+    const mensajeEl = document.getElementById('modalConfirmarMensaje');
+    const btnAceptar = document.getElementById('btnAceptarConfirmarPago');
+    const btnCancelar = document.getElementById('btnCancelarConfirmarPago');
+
+    if (!modal || !btnAceptar || !btnCancelar) {
+      // Si por alguna razón no existe el modal, no bloquear el flujo
+      if (typeof onConfirm === 'function') onConfirm();
+      return;
+    }
+
+    if (tituloEl) tituloEl.textContent = 'Confirmar pago';
+    if (mensajeEl) {
+      mensajeEl.innerHTML = `
+        <div style="text-align: left; margin-top: 0.5rem;">
+          <p style="margin-bottom: 0.75rem;">
+            ¿Confirmar el pago de <strong>S/ ${monto.toFixed(2)}</strong> mediante <strong>${metodoNombre}</strong>?
+          </p>
+          <p style="font-size: 0.9rem; color: #6b7280; margin: 0;">
+            Este pago quedará registrado en tu historial de pagos.
+          </p>
+        </div>
+      `;
+    }
+
+    // Limpiar handlers anteriores
+    btnAceptar.onclick = null;
+    btnCancelar.onclick = null;
+
+    btnAceptar.onclick = () => {
+      modal.style.display = 'none';
+      if (typeof onConfirm === 'function') onConfirm();
+    };
+
+    btnCancelar.onclick = () => {
+      modal.style.display = 'none';
+    };
+
+    modal.style.display = 'flex';
+  };
+
+  // Mostrar modal de confirmación de cancelación de pago
+  const mostrarModalCancelarPago = (onConfirm) => {
+    const modal = document.getElementById('modalConfirmarPago');
+    const tituloEl = document.getElementById('modalConfirmarTitulo');
+    const mensajeEl = document.getElementById('modalConfirmarMensaje');
+    const btnAceptar = document.getElementById('btnAceptarConfirmarPago');
+    const btnCancelar = document.getElementById('btnCancelarConfirmarPago');
+
+    if (!modal || !btnAceptar || !btnCancelar) {
+      if (typeof onConfirm === 'function') onConfirm();
+      return;
+    }
+
+    if (tituloEl) tituloEl.textContent = 'Cancelar pago';
+    if (mensajeEl) {
+      mensajeEl.innerHTML = `
+        <p style="margin-bottom: 0.75rem;">
+          ¿Está seguro que desea cancelar el pago?
+        </p>
+        <p style="font-size: 0.9rem; color: #6b7280; margin: 0;">
+          Podrás volver a intentarlo más tarde desde la sección <strong>Pagos</strong>.
+        </p>
+      `;
+    }
+
+    btnAceptar.onclick = () => {
+      modal.style.display = 'none';
+      if (typeof onConfirm === 'function') onConfirm();
+    };
+
+    btnCancelar.onclick = () => {
+      modal.style.display = 'none';
+    };
+
+    modal.style.display = 'flex';
+  };
   
-  const procesarPago = async (citaId, email, montoBase) => {
+  const procesarPago = async (citaId, email, montoBase, omitirConfirmacion = false) => {
     const btnConfirmarPago = document.getElementById('btnConfirmarPago');
     const metodoSeleccionado = document.querySelector('input[name="metodo"]:checked');
     const montoInput = document.getElementById('montoPago');
@@ -2986,12 +3238,19 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     
-    // Confirmar
+    // Nombre legible del método
     const metodoNombre = metodo === 'tarjeta' ? 'Tarjeta de Crédito/Débito' : 
                         metodo === 'yape' ? 'Yape' : 
                         metodo === 'plin' ? 'Plin' : 'Efectivo';
-    const confirmar = confirm(`¿Confirmar el pago de S/ ${monto.toFixed(2)} mediante ${metodoNombre}?`);
-    if (!confirmar) return;
+
+    // Mostrar confirmación en ventana emergente personalizada (no usar confirm del navegador)
+    if (!omitirConfirmacion) {
+      mostrarModalConfirmacionPago(monto, metodoNombre, () => {
+        // Volver a llamar a procesarPago omitiendo la confirmación
+        procesarPago(citaId, email, montoBase, true);
+      });
+      return;
+    }
     
     // Deshabilitar botón
     if (btnConfirmarPago) {
@@ -4148,7 +4407,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 <strong style="color: #333; min-width: 90px; flex-shrink: 0;">Estado:</strong>
                 <span class="badge badge-${estadoClass}" style="background: ${estadoColor}; color: white; padding: 0.25rem 0.75rem; border-radius: 0.25rem; font-size: 0.875rem; text-transform: capitalize; font-weight: 600;">
                   ${evento.estado || 'Pendiente'}
-                </span>
+          </span>
               </div>
             </div>
           </div>
@@ -4283,6 +4542,172 @@ document.addEventListener("DOMContentLoaded", () => {
       timelineEl.appendChild(item);
     });
   };
+
+  // ============================================================
+  // 🔹 FUNCIONES GLOBALES PARA INFORMACIÓN MÉDICA
+  // ============================================================
+  
+  // Función global para editar información médica desde el perfil del paciente
+  window.editarInformacionMedicaPaciente = async function(email) {
+    if (!email) {
+      alert("No se encontró el email del usuario");
+      return;
+    }
+
+    // Obtener información actual
+    let infoMedica = {};
+    try {
+      const res = await fetch(`http://localhost:5000/api/perfil?email=${encodeURIComponent(email)}`);
+      if (res.ok) {
+        const perfil = await res.json();
+        infoMedica = perfil.informacionMedica || {};
+      }
+    } catch (error) {
+      console.warn("Error al cargar información médica:", error);
+    }
+
+    // Crear modal de edición
+    const editModal = document.createElement("div");
+    editModal.className = "modal";
+    editModal.style.cssText = "position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); z-index: 1000;";
+    editModal.innerHTML = `
+      <div style="background: #fff; border-radius: 12px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; border-bottom: 2px solid #e5e7eb;">
+          <h3 style="margin: 0; color: #1a1a1a; font-size: 1.5rem; font-weight: 700;">Editar Información Médica Básica</h3>
+          <button type="button" onclick="this.closest('.modal').remove()" style="background: none; border: none; font-size: 1.5rem; color: #6b7280; cursor: pointer; padding: 0.5rem; border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='none'">
+            <i class="fa-solid fa-times"></i>
+          </button>
+        </div>
+        <div style="padding: 1.5rem;">
+          <form id="form-info-medica-paciente">
+            <div style="margin-bottom: 1.5rem;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Alergias (separadas por comas)</label>
+              <textarea id="input-alergias-paciente" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; font-family: inherit;" placeholder="Ej: Penicilina, Polen, Látex">${(infoMedica.alergias || []).join(', ')}</textarea>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Medicamentos Actuales (separados por comas)</label>
+              <textarea id="input-medicamentos-paciente" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; font-family: inherit;" placeholder="Ej: Metformina 500mg, Aspirina 100mg">${(infoMedica.medicamentosActuales || []).join(', ')}</textarea>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Condiciones Médicas (separadas por comas)</label>
+              <textarea id="input-condiciones-paciente" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; font-family: inherit;" placeholder="Ej: Diabetes tipo 2, Hipertensión">${(infoMedica.condicionesMedicas || []).join(', ')}</textarea>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Grupo Sanguíneo</label>
+              <select id="input-grupo-sanguineo-paciente" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; font-family: inherit; background: white;">
+                <option value="">Seleccione</option>
+                <option value="A+" ${infoMedica.grupoSanguineo === 'A+' ? 'selected' : ''}>A+</option>
+                <option value="A-" ${infoMedica.grupoSanguineo === 'A-' ? 'selected' : ''}>A-</option>
+                <option value="B+" ${infoMedica.grupoSanguineo === 'B+' ? 'selected' : ''}>B+</option>
+                <option value="B-" ${infoMedica.grupoSanguineo === 'B-' ? 'selected' : ''}>B-</option>
+                <option value="AB+" ${infoMedica.grupoSanguineo === 'AB+' ? 'selected' : ''}>AB+</option>
+                <option value="AB-" ${infoMedica.grupoSanguineo === 'AB-' ? 'selected' : ''}>AB-</option>
+                <option value="O+" ${infoMedica.grupoSanguineo === 'O+' ? 'selected' : ''}>O+</option>
+                <option value="O-" ${infoMedica.grupoSanguineo === 'O-' ? 'selected' : ''}>O-</option>
+              </select>
+            </div>
+
+            <div style="margin-bottom: 1.5rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+              <h4 style="margin: 0 0 1rem 0; font-size: 1rem; font-weight: 600; color: #374151;">Contacto de Emergencia</h4>
+              <div style="display: grid; gap: 1rem;">
+                <div>
+                  <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Nombre</label>
+                  <input type="text" id="input-contacto-nombre-paciente" value="${infoMedica.contactoEmergencia?.nombre || ''}" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; font-family: inherit;" placeholder="Nombre completo">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                  <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Relación</label>
+                    <input type="text" id="input-contacto-relacion-paciente" value="${infoMedica.contactoEmergencia?.relacion || ''}" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; font-family: inherit;" placeholder="Ej: Esposo/a, Padre, etc.">
+                  </div>
+                  <div>
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Teléfono</label>
+                    <input type="text" id="input-contacto-telefono-paciente" value="${infoMedica.contactoEmergencia?.telefono || ''}" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; font-family: inherit;" placeholder="9 dígitos">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+              <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #374151;">Notas Médicas</label>
+              <textarea id="input-notas-paciente" rows="4" style="width: 100%; padding: 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95rem; font-family: inherit;" placeholder="Notas adicionales sobre el paciente...">${infoMedica.notasMedicas || ''}</textarea>
+            </div>
+          </form>
+        </div>
+        <div style="display: flex; gap: 0.75rem; padding: 1.5rem; border-top: 2px solid #e5e7eb; justify-content: flex-end;">
+          <button type="button" onclick="this.closest('.modal').remove()" style="padding: 0.75rem 1.5rem; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#d1d5db'" onmouseout="this.style.background='#e5e7eb'">
+            Cancelar
+          </button>
+          <button type="button" id="btn-guardar-info-medica-paciente" style="padding: 0.75rem 1.5rem; background: #1976d2; color: white; border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;" onmouseover="this.style.background='#1565c0'" onmouseout="this.style.background='#1976d2'">
+            <i class="fa-solid fa-save"></i> Guardar
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(editModal);
+
+    // Manejar guardado
+    document.getElementById("btn-guardar-info-medica-paciente").onclick = async () => {
+      const alergiasText = document.getElementById("input-alergias-paciente").value.trim();
+      const medicamentosText = document.getElementById("input-medicamentos-paciente").value.trim();
+      const condicionesText = document.getElementById("input-condiciones-paciente").value.trim();
+      
+      const alergias = alergiasText ? alergiasText.split(',').map(a => a.trim()).filter(a => a) : [];
+      const medicamentos = medicamentosText ? medicamentosText.split(',').map(m => m.trim()).filter(m => m) : [];
+      const condiciones = condicionesText ? condicionesText.split(',').map(c => c.trim()).filter(c => c) : [];
+
+      const datos = {
+        informacionMedica: {
+          alergias,
+          medicamentosActuales: medicamentos,
+          condicionesMedicas: condiciones,
+          grupoSanguineo: document.getElementById("input-grupo-sanguineo-paciente").value,
+          contactoEmergencia: {
+            nombre: document.getElementById("input-contacto-nombre-paciente").value.trim(),
+            relacion: document.getElementById("input-contacto-relacion-paciente").value.trim(),
+            telefono: document.getElementById("input-contacto-telefono-paciente").value.trim(),
+          },
+          notasMedicas: document.getElementById("input-notas-paciente").value.trim(),
+        }
+      };
+
+      try {
+        const res = await fetch(`http://localhost:5000/api/pacientes/info-medica?email=${encodeURIComponent(email)}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(datos),
+        });
+
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}));
+          throw new Error(errorData.message || errorData.error || "Error al guardar la información médica");
+        }
+
+        alert("Información médica guardada correctamente");
+        editModal.remove();
+        // Recargar perfil para mostrar la información actualizada
+        cargarPerfil(email);
+      } catch (error) {
+        console.error("Error al guardar información médica:", error);
+        alert(error.message || "No se pudo guardar la información médica");
+      }
+    };
+  };
+
+  // ============================================================
+  // 🔹 CONFIGURACIÓN DEL AVATAR DEL TOPBAR
+  // ============================================================
+  const topbarAvatar = document.getElementById("topbar-avatar");
+  if (topbarAvatar) {
+    topbarAvatar.style.cursor = "pointer";
+    topbarAvatar.addEventListener("click", () => {
+      loadSection("profile");
+    });
+  }
 
   // ============================================================
   // 🔹 CARGA INICIAL

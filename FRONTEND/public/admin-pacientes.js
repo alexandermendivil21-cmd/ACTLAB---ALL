@@ -417,9 +417,13 @@ document.addEventListener("DOMContentLoaded", () => {
         ? p.genero.charAt(0).toUpperCase() + p.genero.slice(1).replace(/-/g, ' ')
         : "";
       
+      // Mostrar solo DNI cuando el tipo de documento es DNI, si no, mostrar número de documento tal cual
+      const dniMostrado = p.num_documento ? p.num_documento : "";
+      
       row.innerHTML = `
         <td>${p.nombres ?? ""}</td>
         <td>${p.apellidos ?? ""}</td>
+        <td>${dniMostrado}</td>
         <td>${p.edad ?? ""}</td>
         <td>${generoFormateado}</td>
         <td>${p.email ?? ""}</td>

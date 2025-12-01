@@ -98,14 +98,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Actualizar imagen de perfil
       const profileAvatar = document.getElementById("profile-avatar");
+      const topbarAvatar = document.getElementById("topbar-avatar-tecnico");
       const defaultAvatar = "../assets2/img/avatar-sofia.jpg";
       const avatarUrl = tecnico.imagen 
         ? `http://localhost:5000${tecnico.imagen}` 
         : defaultAvatar;
-      profileAvatar.src = avatarUrl;
-      profileAvatar.onerror = () => {
-        profileAvatar.src = defaultAvatar;
-      };
+      
+      if (profileAvatar) {
+        profileAvatar.src = avatarUrl;
+        profileAvatar.onerror = () => {
+          profileAvatar.src = defaultAvatar;
+        };
+      }
+
+      // Actualizar avatar del topbar en todas las vistas del técnico
+      if (topbarAvatar) {
+        topbarAvatar.src = avatarUrl;
+        topbarAvatar.onerror = () => {
+          topbarAvatar.src = defaultAvatar;
+        };
+      }
 
       // Actualizar nombre en el header
       const userName = document.getElementById("userName");

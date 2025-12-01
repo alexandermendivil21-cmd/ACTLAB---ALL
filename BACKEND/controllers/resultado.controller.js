@@ -74,10 +74,12 @@ export const createResultado = async (req, res) => {
       return res.status(404).json({ error: "El usuario no existe" });
     }
 
+    const fechaExamenFinal = fechaExamen ? new Date(fechaExamen) : new Date();
+
     const nuevoResultado = new Resultado({
       email,
       tipoExamen,
-      fechaExamen,
+      fechaExamen: fechaExamenFinal,
       fechaResultado: new Date(),
       archivoPDF: `/uploads/pdfs/${req.file.filename}`,
       nombreArchivo: req.file.originalname,

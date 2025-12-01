@@ -9,6 +9,34 @@ document.addEventListener('DOMContentLoaded', () => {
   let userCargo = sessionStorage.getItem('userCargo') || '';
   let citasCargadas = []; // Almacenar las citas cargadas para obtener la especialidad
 
+  // Actualizar avatar del topbar para técnico de laboratorio (si aplica)
+  (async () => {
+    try {
+      const userCargoSesion = sessionStorage.getItem('userCargo');
+      const userEmailSesion = sessionStorage.getItem('userEmail');
+      if (userCargoSesion !== 'tecnico' || !userEmailSesion) return;
+
+      const res = await fetch(`/api/perfil-tecnico?email=${encodeURIComponent(userEmailSesion)}`);
+      if (!res.ok) return;
+      const tecnico = await res.json();
+
+      const topbarAvatar = document.getElementById('topbar-avatar-tecnico');
+      const defaultAvatar = '../assets2/img/avatar-sofia.jpg';
+      const avatarUrl = tecnico.imagen
+        ? `http://localhost:5000${tecnico.imagen}`
+        : defaultAvatar;
+
+      if (topbarAvatar) {
+        topbarAvatar.src = avatarUrl;
+        topbarAvatar.onerror = () => {
+          topbarAvatar.src = defaultAvatar;
+        };
+      }
+    } catch (error) {
+      console.warn('No se pudo actualizar el avatar del técnico en el topbar:', error);
+    }
+  })();
+
   // Referencias DOM
   const filtroPaciente = document.getElementById('filtroPaciente');
   const filtroTipoExamen = document.getElementById('filtroTipoExamen');
@@ -53,6 +81,14 @@ document.addEventListener('DOMContentLoaded', () => {
     cargarResultados();
     cargarMuestras();
     setupEventListeners();
+
+    // Configurar click en avatar del topbar para ir al perfil del técnico
+    const topbarAvatar = document.getElementById('topbar-avatar-tecnico');
+    if (topbarAvatar) {
+      topbarAvatar.addEventListener('click', () => {
+        window.location.href = '/admin/perfil-tecnico';
+      });
+    }
   }
 
   function setupEventListeners() {
@@ -842,14 +878,35 @@ document.addEventListener('DOMContentLoaded', () => {
       const dni = await buscarDNIPorEmail(resultado.email || '');
       document.getElementById('inputEmail').value = dni || '';
       document.getElementById('inputTipoExamen').value = resultado.tipoExamen || '';
-      document.getElementById('inputFechaExamen').value = resultado.fechaExamen ? new Date(resultado.fechaExamen).toISOString().split('T')[0] : '';
+      // Mostrar fecha/hora del resultado ya guardado
+      const inputFecha = document.getElementById('inputFechaExamen');
+      if (inputFecha) {
+        if (resultado.fechaExamen) {
+          const fecha = new Date(resultado.fechaExamen);
+          const fechaLocal = new Date(fecha.getTime() - fecha.getTimezoneOffset() * 60000);
+          inputFecha.value = fechaLocal.toISOString().slice(0, 16);
+        } else {
+          inputFecha.value = '';
+        }
+        inputFecha.readOnly = true;
+        inputFecha.style.backgroundColor = '#f3f4f6';
+        inputFecha.style.cursor = 'not-allowed';
+      }
       document.getElementById('inputObservaciones').value = resultado.observaciones || '';
       inputPDF.removeAttribute('required');
       fileName.textContent = resultado.nombreArchivo || 'Archivo actual';
     } else {
       modalTitulo.textContent = 'Subir Nuevo Resultado';
       formResultado.reset();
-      document.getElementById('inputFechaExamen').valueAsDate = new Date();
+      const inputFecha = document.getElementById('inputFechaExamen');
+      if (inputFecha) {
+        const ahora = new Date();
+        const fechaLocal = new Date(ahora.getTime() - ahora.getTimezoneOffset() * 60000);
+        inputFecha.value = fechaLocal.toISOString().slice(0, 16);
+        inputFecha.readOnly = true;
+        inputFecha.style.backgroundColor = '#f3f4f6';
+        inputFecha.style.cursor = 'not-allowed';
+      }
       inputPDF.setAttribute('required', 'required');
       fileName.textContent = 'Seleccionar archivo PDF';
     }

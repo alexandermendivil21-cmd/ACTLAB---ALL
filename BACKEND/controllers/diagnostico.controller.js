@@ -6,11 +6,34 @@ import Cita from "../models/Cita.js";
 
 export const getDiagnosticos = async (req, res) => {
   try {
-    const diagnosticos = await Diagnostico.find({})
+    const { userEmail, userCargo } = req.query;
+    
+    let query = {};
+    
+    // Si el usuario es médico, solo mostrar sus propios diagnósticos
+    if (userCargo === "medico" && userEmail) {
+      // Buscar el médico por email para obtener su ID
+      const medico = await Personal.findOne({ 
+        email: userEmail.toLowerCase(), 
+        cargo: "medico" 
+      });
+      
+      if (medico) {
+        query.idMedico = medico._id;
+        console.log(`🔒 Filtrando diagnósticos para médico: ${medico.nombres} ${medico.apellidos}`);
+      } else {
+        // Si no se encuentra el médico, retornar array vacío
+        console.warn(`⚠️ Médico no encontrado con email: ${userEmail}`);
+        return res.status(200).json([]);
+      }
+    }
+    // Si es admin o técnico, mostrar todos los diagnósticos (query vacío)
+    
+    const diagnosticos = await Diagnostico.find(query)
       .populate("idMedico", "nombres apellidos especialidad cargo")
       .sort({ fechaDiagnostico: -1 });
     
-    console.log("Diagnósticos encontrados:", diagnosticos.length);
+    console.log(`📋 Diagnósticos encontrados: ${diagnosticos.length} (Usuario: ${userCargo || 'admin'})`);
     res.status(200).json(diagnosticos);
   } catch (error) {
     console.error("Error al obtener diagnósticos:", error.message);
@@ -80,6 +103,9 @@ export const createDiagnostico = async (req, res) => {
       });
     }
 
+    // Si no se proporciona fecha, usar la fecha/hora actual del servidor
+    const fechaFinal = fechaDiagnostico ? new Date(fechaDiagnostico) : new Date();
+
     // Verificar que el paciente existe
     const paciente = await Usuario.findOne({ email: email.toLowerCase() });
     if (!paciente) {
@@ -104,7 +130,7 @@ export const createDiagnostico = async (req, res) => {
     const nuevoDiagnostico = await Diagnostico.create({
       email: email.toLowerCase(),
       idMedico,
-      fechaDiagnostico: fechaDiagnostico ? new Date(fechaDiagnostico) : new Date(),
+      fechaDiagnostico: fechaFinal,
       diagnostico,
       sintomas: sintomas || "",
       observaciones: observaciones || "",
@@ -120,9 +146,9 @@ export const createDiagnostico = async (req, res) => {
 
     console.log("✅ Diagnóstico guardado:", diagnosticoCreado._id);
     
-    // Buscar y actualizar la cita asociada a "completada"
-    try {
-      const fechaDiag = fechaDiagnostico ? new Date(fechaDiagnostico) : new Date();
+      // Buscar y actualizar la cita asociada a "completada"
+      try {
+      const fechaDiag = fechaFinal;
       const especialidadMedico = medico.especialidad && medico.especialidad !== "N/A" ? medico.especialidad : null;
       
       // Estrategia de búsqueda: buscar la cita más apropiada

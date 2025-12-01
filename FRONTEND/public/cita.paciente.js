@@ -277,17 +277,17 @@ document.addEventListener("DOMContentLoaded", () => {
               modalRecomendaciones.style.display = "none";
             }
             // Redirigir a la lista de citas
-            if (typeof loadSection === 'function') {
+          if (typeof loadSection === 'function') {
               loadSection("citas");
-            } else {
+          } else {
               window.location.href = "./dashboardPaciente.html";
-            }
+          }
           });
         }
       };
       
       // Limpiar el formulario
-      formSolicitarCita.reset();
+        formSolicitarCita.reset();
 
     } catch (error) {
       console.error("Error al solicitar cita:", error);

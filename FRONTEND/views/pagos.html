@@ -1517,15 +1517,19 @@
                   <i class="fa-solid fa-eye"></i>
                   Ver Detalles
                 </button>
-                <div style="width: 100%; max-width: 150px;">
-                  <div class="select-label">Cambiar método:</div>
-                  <select class="select-metodo-modern" data-pago-id="${pago._id}" onchange="actualizarMetodoPago('${pago._id}', this.value)">
-                    <option value="tarjeta" ${pago.metodo === 'tarjeta' ? 'selected' : ''}>Tarjeta</option>
-                    <option value="yape" ${pago.metodo === 'yape' ? 'selected' : ''}>Yape</option>
-                    <option value="plin" ${pago.metodo === 'plin' ? 'selected' : ''}>Plin</option>
-                    <option value="efectivo" ${pago.metodo === 'efectivo' ? 'selected' : ''}>Efectivo</option>
-                  </select>
-                </div>
+                ${
+                  pago.estado === 'pagado'
+                    ? ''
+                    : `<div style="width: 100%; max-width: 150px; margin-top: 0.75rem;">
+                        <div class="select-label">Cambiar método:</div>
+                        <select class="select-metodo-modern" data-pago-id="${pago._id}" onchange="actualizarMetodoPago('${pago._id}', this.value)">
+                          <option value="tarjeta" ${pago.metodo === 'tarjeta' ? 'selected' : ''}>Tarjeta</option>
+                          <option value="yape" ${pago.metodo === 'yape' ? 'selected' : ''}>Yape</option>
+                          <option value="plin" ${pago.metodo === 'plin' ? 'selected' : ''}>Plin</option>
+                          <option value="efectivo" ${pago.metodo === 'efectivo' ? 'selected' : ''}>Efectivo</option>
+                        </select>
+                      </div>`
+                }
               </div>
             </td>
           </tr>`;
@@ -1898,7 +1902,20 @@
         return;
       }
 
-      // Confirmar cambio
+      // Verificar si el pago ya está marcado como pagado; si es así, no permitir cambios
+      const pagosLocal = window.pagosData || [];
+      const pagoLocal = pagosLocal.find(p => p._id === pagoId || String(p._id) === String(pagoId));
+      if (pagoLocal && pagoLocal.estado === 'pagado') {
+        alert('No se puede cambiar el método de un pago que ya está marcado como PAGADO.');
+        const selectBloqueado = document.querySelector(`select[data-pago-id="${pagoId}"]`);
+        if (selectBloqueado && pagoLocal.metodo) {
+          selectBloqueado.value = pagoLocal.metodo;
+          selectBloqueado.disabled = true;
+        }
+        return;
+      }
+
+      // Confirmar cambio con ventana nativa simple (aquí solo admins pueden ver este cambio)
       const confirmar = confirm(`¿Desea cambiar el método de pago a ${nuevoMetodo}?`);
       if (!confirmar) {
         // Restaurar el valor anterior en el select
