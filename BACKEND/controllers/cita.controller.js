@@ -84,8 +84,9 @@ export const getCitas = async (req, res) => {
         .populate("idMedico", "nombres apellidos especialidad")
         .sort({ fechaDiagnostico: -1 });
       
-      // Obtener resultados del paciente
+      // Obtener resultados del paciente (con populate de idCita para verificar asociación)
       const resultados = await Resultado.find({ email: emailLower })
+        .populate('idCita', '_id')
         .sort({ fechaResultado: -1 });
       
       // Agregar diagnósticos y resultados relacionados a cada cita
@@ -123,16 +124,18 @@ export const getCitas = async (req, res) => {
           };
         });
         
-        // Buscar resultados relacionados (misma especialidad, rango amplio de fechas)
+        // Buscar resultados relacionados (solo los que están asociados a esta cita específica)
         const resultadosRelacionados = resultados.filter(res => {
-          const fechaRes = new Date(res.fechaResultado);
-          const fechaLimite = new Date(fechaCita);
-          fechaLimite.setDate(fechaLimite.getDate() + 180); // 6 meses después
-          const fechaInicio = new Date(fechaCita);
-          fechaInicio.setDate(fechaInicio.getDate() - 180); // 6 meses antes
-          return res.tipoExamen === cita.especialidad &&
-                 fechaRes >= fechaInicio && 
-                 fechaRes <= fechaLimite;
+          // Verificar que el resultado esté asociado a esta cita
+          // idCita puede ser un ObjectId o un objeto poblado
+          let idCitaResultado = null;
+          if (res.idCita) {
+            idCitaResultado = typeof res.idCita === 'object' && res.idCita._id 
+              ? res.idCita._id.toString() 
+              : res.idCita.toString();
+          }
+          const idCitaActual = cita._id.toString();
+          return idCitaResultado === idCitaActual;
         }).map(res => ({
           id: res._id,
           fecha: res.fechaResultado,

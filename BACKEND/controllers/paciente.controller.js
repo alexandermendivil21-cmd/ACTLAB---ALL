@@ -394,8 +394,9 @@ export const getHistorialMedico = async (req, res) => {
       .populate("idMedico", "nombres apellidos especialidad cargo")
       .sort({ fechaDiagnostico: -1 });
     
-    // Obtener resultados de exámenes del paciente
+    // Obtener resultados de exámenes del paciente (con populate de idCita para verificar asociación)
     const resultados = await Resultado.find({ email: emailLower })
+      .populate('idCita', '_id')
       .sort({ fechaResultado: -1 });
     
     // Formatear el historial agrupando diagnósticos y resultados con sus citas
@@ -436,18 +437,17 @@ export const getHistorialMedico = async (req, res) => {
         };
       });
       
-      // Buscar resultados relacionados (misma especialidad, sin restricción de fecha estricta)
+      // Buscar resultados relacionados (solo los que están asociados a esta cita específica)
       const resultadosRelacionados = resultados.filter(res => {
-        // Si la especialidad coincide, asociar el resultado con la cita
-        // Permitir un rango amplio de fechas para mayor flexibilidad
-        const fechaRes = new Date(res.fechaResultado);
-        const fechaLimite = new Date(fechaCita);
-        fechaLimite.setDate(fechaLimite.getDate() + 180); // 6 meses después
-        const fechaInicio = new Date(fechaCita);
-        fechaInicio.setDate(fechaInicio.getDate() - 180); // 6 meses antes
-        return res.tipoExamen === cita.especialidad &&
-               fechaRes >= fechaInicio && 
-               fechaRes <= fechaLimite;
+        // Verificar que el resultado esté asociado a esta cita
+        let idCitaResultado = null;
+        if (res.idCita) {
+          idCitaResultado = typeof res.idCita === 'object' && res.idCita._id 
+            ? res.idCita._id.toString() 
+            : res.idCita.toString();
+        }
+        const idCitaActual = cita._id.toString();
+        return idCitaResultado === idCitaActual;
       }).map(res => ({
         id: res._id,
         fecha: res.fechaResultado,

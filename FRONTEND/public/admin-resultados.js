@@ -64,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const formResultado = document.getElementById('formResultado');
   const inputPDF = document.getElementById('inputPDF');
   const fileName = document.getElementById('fileName');
+  const inputCitaResultado = document.getElementById('inputCitaResultado');
   const muestrasBody = document.getElementById('muestrasBody');
   const tablaMuestras = document.getElementById('tablaMuestras');
   const emptyStateMuestras = document.getElementById('emptyStateMuestras');
@@ -164,6 +165,38 @@ document.addEventListener('DOMContentLoaded', () => {
         fileName.textContent = 'Seleccionar archivo PDF';
       }
     });
+
+    // Cargar citas de análisis cuando se ingresa el DNI
+    const inputEmail = document.getElementById('inputEmail');
+    if (inputEmail) {
+      let timeoutId;
+      inputEmail.addEventListener('input', async (e) => {
+        const dni = e.target.value.trim();
+        
+        // Limpiar timeout anterior
+        clearTimeout(timeoutId);
+        
+        // Validar formato de DNI
+        if (!/^\d{8}$/.test(dni)) {
+          if (inputCitaResultado) {
+            inputCitaResultado.innerHTML = '<option value="">Seleccione una cita (opcional)</option>';
+          }
+          return;
+        }
+        
+        // Esperar un poco antes de cargar (debounce)
+        timeoutId = setTimeout(async () => {
+          try {
+            await cargarCitasAnalisisPorDNI(dni);
+          } catch (error) {
+            console.error('Error al cargar citas de análisis:', error);
+            if (inputCitaResultado) {
+              inputCitaResultado.innerHTML = '<option value="">Error al cargar las citas</option>';
+            }
+          }
+        }, 500); // Esperar 500ms después de que el usuario deje de escribir
+      });
+    }
 
     // Cerrar modal al hacer clic fuera
     modalResultado.addEventListener('click', (e) => {
@@ -744,6 +777,9 @@ document.addEventListener('DOMContentLoaded', () => {
       formData.append('fechaExamen', datos.fechaExamen);
       formData.append('observaciones', datos.observaciones || '');
       formData.append('estado', datos.estado || 'disponible');
+      if (datos.idCita) {
+        formData.append('idCita', datos.idCita);
+      }
       formData.append('pdf', archivo);
 
       const response = await fetch('/api/admin/resultados', {
@@ -928,7 +964,15 @@ document.addEventListener('DOMContentLoaded', () => {
       // Buscar DNI por email
       const dni = await buscarDNIPorEmail(resultado.email || '');
       document.getElementById('inputEmail').value = dni || '';
-      document.getElementById('inputTipoExamen').value = resultado.tipoExamen || '';
+      
+      // Cargar citas si hay DNI
+      if (dni && /^\d{8}$/.test(dni)) {
+        await cargarCitasAnalisisPorDNI(dni);
+        // Seleccionar la cita asociada si existe
+        if (resultado.idCita && inputCitaResultado) {
+          inputCitaResultado.value = resultado.idCita._id || resultado.idCita || '';
+        }
+      }
       // Mostrar fecha/hora del resultado ya guardado
       const inputFecha = document.getElementById('inputFechaExamen');
       if (inputFecha) {
@@ -960,6 +1004,11 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       inputPDF.setAttribute('required', 'required');
       fileName.textContent = 'Seleccionar archivo PDF';
+      
+      // Limpiar selector de citas
+      if (inputCitaResultado) {
+        inputCitaResultado.innerHTML = '<option value="">Seleccione una cita</option>';
+      }
     }
 
     modalResultado.classList.remove('hidden');
@@ -970,6 +1019,11 @@ document.addEventListener('DOMContentLoaded', () => {
     resultadoEditando = null;
     formResultado.reset();
     fileName.textContent = 'Seleccionar archivo PDF';
+    
+    // Limpiar selector de citas
+    if (inputCitaResultado) {
+      inputCitaResultado.innerHTML = '<option value="">Seleccione una cita (opcional)</option>';
+    }
   }
 
   function mostrarModalExito(mensaje, titulo = null) {
@@ -1105,6 +1159,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  // Función para cargar citas de análisis del paciente
+  async function cargarCitasAnalisisPorDNI(dni) {
+    if (!inputCitaResultado) return;
+    
+    try {
+      // Validar formato de DNI
+      if (!/^\d{8}$/.test(dni)) {
+        inputCitaResultado.innerHTML = '<option value="">Seleccione una cita</option>';
+        return;
+      }
+
+      // Buscar el email del paciente por DNI
+      const email = await buscarEmailPorDNI(dni);
+      
+      // Obtener las citas del paciente
+      const response = await fetch(`/api/citas?email=${encodeURIComponent(email)}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar las citas');
+      }
+      
+      let citas = await response.json();
+      
+      // Filtrar solo las citas de análisis (que contengan "Análisis" en motivoCita)
+      citas = citas.filter(cita => 
+        cita.motivoCita && 
+        (cita.motivoCita.toLowerCase().includes('análisis') || 
+         cita.motivoCita.toLowerCase().includes('analisis'))
+      );
+      
+      // Limpiar opciones anteriores
+      inputCitaResultado.innerHTML = '<option value="">Seleccione una cita</option>';
+      
+      if (citas.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No hay citas de análisis disponibles para este paciente';
+        option.disabled = true;
+        inputCitaResultado.appendChild(option);
+        return;
+      }
+      
+      // Agregar citas al selector
+      citas.forEach(cita => {
+        const fechaCita = new Date(cita.fechaCita);
+        const fechaFormateada = fechaCita.toLocaleDateString('es-ES', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        const option = document.createElement('option');
+        option.value = cita._id;
+        option.setAttribute('data-especialidad', cita.especialidad || '');
+        option.textContent = `${fechaFormateada} - ${cita.especialidad || 'N/A'} - ${cita.motivoCita || 'N/A'} (${cita.estado || 'N/A'})`;
+        inputCitaResultado.appendChild(option);
+      });
+    } catch (error) {
+      console.error('Error al cargar citas de análisis:', error);
+      inputCitaResultado.innerHTML = '<option value="">Error al cargar las citas</option>';
+    }
+  }
+
   async function guardarResultado(e) {
     e.preventDefault();
 
@@ -1117,14 +1234,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
+      // Validar que se haya seleccionado una cita
+      if (!inputCitaResultado || !inputCitaResultado.value) {
+        mostrarModalError('Por favor, seleccione una cita de análisis');
+        return;
+      }
+
       // Buscar el email del paciente por DNI
       const email = await buscarEmailPorDNI(dni);
 
+      // Obtener el tipo de examen de la cita seleccionada
+      const citaSeleccionada = inputCitaResultado.options[inputCitaResultado.selectedIndex];
+      const tipoExamen = citaSeleccionada ? citaSeleccionada.getAttribute('data-especialidad') : null;
+
+      if (!tipoExamen) {
+        mostrarModalError('No se pudo obtener el tipo de examen de la cita seleccionada');
+        return;
+      }
+
       const datos = {
         email: email,
-        tipoExamen: document.getElementById('inputTipoExamen').value,
+        tipoExamen: tipoExamen,
         fechaExamen: document.getElementById('inputFechaExamen').value,
-        observaciones: document.getElementById('inputObservaciones').value
+        observaciones: document.getElementById('inputObservaciones').value,
+        idCita: inputCitaResultado.value
       };
 
       const archivo = inputPDF.files[0];

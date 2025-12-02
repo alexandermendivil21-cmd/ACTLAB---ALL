@@ -126,78 +126,104 @@
   <div id="modalDetallePago" class="modal-overlay">
     <div class="modal-content-detalle">
       <div class="modal-header-detalle">
-        <h2>
-          <i class="fa-solid fa-receipt"></i>
-          Detalles del Pago
-        </h2>
+        <div class="header-content">
+          <div class="header-icon-wrapper">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <h2>Detalles del Pago</h2>
+        </div>
         <button type="button" id="cerrarModalPago" class="btn-close-modal" onclick="if(typeof window.cerrarModalDetallePago === 'function') window.cerrarModalDetallePago(event);">
           <i class="fa-solid fa-times"></i>
         </button>
       </div>
 
-      <form id="formDetallePago" class="form-detalle-pago">
-        <div class="form-field-detalle">
-          <label>
-            <i class="fa-solid fa-wallet"></i>
-            Tipo de Pago
-          </label>
-          <input type="text" id="detalleTipoPago" readonly>
+      <div class="modal-body-detalle">
+        <!-- Sección de Información de Pago -->
+        <div class="info-section payment-info">
+          <h3 class="section-title">
+            <i class="fa-solid fa-credit-card"></i>
+            Información de Pago
+          </h3>
+          <div class="info-grid">
+            <div class="info-item highlight">
+              <div class="info-label">
+                <i class="fa-solid fa-coins"></i>
+                Monto
+              </div>
+              <div class="info-value" id="detalleMonto">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">
+                <i class="fa-solid fa-wallet"></i>
+                Método
+              </div>
+              <div class="info-value" id="detalleTipoPago">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">
+                <i class="fa-solid fa-circle-check"></i>
+                Estado
+              </div>
+              <div class="info-value" id="detalleEstado">-</div>
+            </div>
+          </div>
         </div>
 
-        <div class="form-field-detalle">
-          <label>
+        <!-- Sección de Información del Paciente -->
+        <div class="info-section patient-info">
+          <h3 class="section-title">
             <i class="fa-solid fa-user"></i>
-            Nombre del Paciente
-          </label>
-          <input type="text" id="detalleNombrePaciente" readonly>
+            Información del Paciente
+          </h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">
+                <i class="fa-solid fa-user-circle"></i>
+                Paciente
+              </div>
+              <div class="info-value" id="detalleNombrePaciente">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">
+                <i class="fa-solid fa-envelope"></i>
+                Email
+              </div>
+              <div class="info-value email-value" id="detalleCorreo">-</div>
+            </div>
+          </div>
         </div>
 
-        <div class="form-field-detalle">
-          <label>
-            <i class="fa-solid fa-envelope"></i>
-            Correo
-          </label>
-          <input type="email" id="detalleCorreo" readonly>
+        <!-- Sección de Información Adicional -->
+        <div class="info-section additional-info">
+          <h3 class="section-title">
+            <i class="fa-solid fa-info-circle"></i>
+            Información Adicional
+          </h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <div class="info-label">
+                <i class="fa-solid fa-calendar-alt"></i>
+                Fecha de Pago
+              </div>
+              <div class="info-value" id="detalleFecha">-</div>
+            </div>
+            <div class="info-item">
+              <div class="info-label">
+                <i class="fa-solid fa-flask"></i>
+                Especialidad
+              </div>
+              <div class="info-value" id="detalleTipoAnalisis">-</div>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <div class="form-field-detalle">
-          <label>
-            <i class="fa-solid fa-calendar"></i>
-            Fecha de Pago
-          </label>
-          <input type="text" id="detalleFecha" readonly>
-        </div>
-
-        <div class="form-field-detalle">
-          <label>
-            <i class="fa-solid fa-flask"></i>
-            Tipo de Análisis / Especialidad
-          </label>
-          <input type="text" id="detalleTipoAnalisis" readonly>
-        </div>
-
-        <div class="form-field-detalle">
-          <label>
-            <i class="fa-solid fa-dollar-sign"></i>
-            Monto a Pagar
-          </label>
-          <input type="text" id="detalleMonto" readonly class="monto-input">
-        </div>
-
-        <div class="form-field-detalle">
-          <label>
-            <i class="fa-solid fa-circle-check"></i>
-            Estado
-          </label>
-          <div id="detalleEstado" class="estado-detalle"></div>
-        </div>
-
-        <div class="modal-actions-detalle">
-          <button type="button" id="btnCerrarDetalle" class="btn-secondary-detalle" onclick="if(typeof window.cerrarModalDetallePago === 'function') window.cerrarModalDetallePago(event);">
-            Cerrar
-          </button>
-        </div>
-      </form>
+      <div class="modal-actions-detalle">
+        <button type="button" id="btnCerrarDetalle" class="btn-aceptar-detalle" onclick="if(typeof window.cerrarModalDetallePago === 'function') window.cerrarModalDetallePago(event);">
+          <i class="fa-solid fa-check"></i>
+          Aceptar
+        </button>
+      </div>
     </div>
   </div>
 
@@ -962,126 +988,209 @@
     }
 
     .modal-content-detalle {
-      background: white;
-      border-radius: 16px;
-      padding: 2rem;
-      max-width: 600px;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 20px;
+      padding: 0;
+      max-width: 650px;
       width: 90%;
       max-height: 90vh;
-      overflow-y: auto;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
     }
 
     .modal-header-detalle {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      padding: 1.75rem 2rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1.5rem;
-      padding-bottom: 1rem;
-      border-bottom: 2px solid #e5e7eb;
+      color: white;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .header-icon-wrapper {
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-icon-wrapper i {
+      font-size: 1.5rem;
+      color: white;
     }
 
     .modal-header-detalle h2 {
       margin: 0;
       font-size: 1.5rem;
       font-weight: 700;
-      color: #111827;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .modal-header-detalle h2 i {
-      color: #3b82f6;
+      color: white;
     }
 
     .btn-close-modal {
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      color: #6b7280;
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      font-size: 1.25rem;
+      color: white;
       cursor: pointer;
       padding: 0.5rem;
       border-radius: 8px;
       transition: all 0.2s;
-      width: 32px;
-      height: 32px;
+      width: 36px;
+      height: 36px;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
     .btn-close-modal:hover {
-      background: #f3f4f6;
-      color: #111827;
+      background: rgba(255, 255, 255, 0.3);
+      transform: rotate(90deg);
     }
 
-    .form-detalle-pago {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
+    .modal-body-detalle {
+      padding: 2rem;
+      overflow-y: auto;
+      flex: 1;
     }
 
-    .form-field-detalle label {
-      display: block;
-      font-weight: 600;
+    .info-section {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
+    }
+
+    .info-section:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title {
+      margin: 0 0 1.25rem 0;
+      font-size: 1rem;
+      font-weight: 700;
       color: #374151;
-      margin-bottom: 0.5rem;
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid #f3f4f6;
     }
 
-    .form-field-detalle label i {
+    .section-title i {
       color: #3b82f6;
+      font-size: 1.1rem;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .info-item.highlight {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      padding: 1.25rem;
+      border-radius: 12px;
+      border: 2px solid #22c55e;
+    }
+
+    .info-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-label i {
+      color: #3b82f6;
+      font-size: 0.9rem;
       width: 16px;
     }
 
-    .form-field-detalle input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
-      font-size: 1rem;
-      background: #f9fafb;
-      color: #111827;
-    }
-
-    .form-field-detalle input.monto-input {
-      font-size: 1.25rem;
-      font-weight: 700;
-      background: #f0fdf4;
+    .info-item.highlight .info-label {
       color: #059669;
-      text-align: right;
     }
 
-    .estado-detalle {
-      padding: 0.75rem;
-      border: 2px solid #e5e7eb;
-      border-radius: 8px;
-      font-size: 1rem;
-      background: #f9fafb;
+    .info-item.highlight .info-label i {
+      color: #059669;
+    }
+
+    .info-value {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #111827;
+      word-break: break-word;
+    }
+
+    .info-item.highlight .info-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #059669;
+    }
+
+    .email-value {
+      font-size: 0.95rem;
+      color: #4b5563;
+      word-break: break-all;
     }
 
     .modal-actions-detalle {
+      padding: 1.5rem 2rem;
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
       display: flex;
       justify-content: flex-end;
-      margin-top: 1rem;
     }
 
-    .btn-secondary-detalle {
-      background: #6b7280;
+    .btn-aceptar-detalle {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       color: white;
       border: none;
-      padding: 0.75rem 2rem;
-      border-radius: 8px;
+      padding: 0.875rem 2rem;
+      border-radius: 10px;
       font-weight: 600;
+      font-size: 1rem;
       cursor: pointer;
       transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
     }
 
-    .btn-secondary-detalle:hover {
-      background: #4b5563;
+    .btn-aceptar-detalle:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px -2px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-aceptar-detalle:active {
+      transform: translateY(0);
     }
 
     /* Responsive para nueva tabla */
@@ -1801,13 +1910,13 @@
           ? '<span class="estado-badge estado-pagado"><i class="fa-solid fa-check-circle"></i> Pagado</span>'
           : '<span class="estado-badge estado-pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>';
 
-        // Llenar el formulario
-        document.getElementById('detalleTipoPago').value = metodoFormateado;
-        document.getElementById('detalleNombrePaciente').value = nombrePaciente;
-        document.getElementById('detalleCorreo').value = email || '-';
-        document.getElementById('detalleFecha').value = fechaFormateada;
-        document.getElementById('detalleTipoAnalisis').value = especialidad;
-        document.getElementById('detalleMonto').value = `S/ ${monto.toFixed(2)}`;
+        // Llenar el modal con la nueva estructura
+        document.getElementById('detalleTipoPago').textContent = metodoFormateado;
+        document.getElementById('detalleNombrePaciente').textContent = nombrePaciente || 'N/A';
+        document.getElementById('detalleCorreo').textContent = email || 'N/A';
+        document.getElementById('detalleFecha').textContent = fechaFormateada || 'N/A';
+        document.getElementById('detalleTipoAnalisis').textContent = especialidad || 'N/A';
+        document.getElementById('detalleMonto').textContent = `S/ ${monto.toFixed(2)}`;
         document.getElementById('detalleEstado').innerHTML = estadoBadge;
 
         // Mostrar el modal

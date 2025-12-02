@@ -16,6 +16,12 @@ const diagnosticoSchema = new mongoose.Schema(
       required: true,
     },
     
+    idCita: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Cita",
+      required: false,
+    },
+    
     fechaDiagnostico: {
       type: Date,
       required: true,

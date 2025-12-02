@@ -15,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Inputs del formulario
   const inputEmail = document.getElementById("email-paciente");
   const inputMedico = document.getElementById("id-medico");
+  const inputCita = document.getElementById("id-cita");
   const inputFecha = document.getElementById("fecha-diagnostico");
   const inputSintomas = document.getElementById("sintomas");
   const inputDiagnostico = document.getElementById("diagnostico");
@@ -62,6 +63,76 @@ document.addEventListener("DOMContentLoaded", () => {
       return paciente.num_documento;
     } catch (error) {
       return null;
+    }
+  }
+
+  // Función para obtener la especialidad del médico seleccionado
+  function obtenerEspecialidadMedico() {
+    if (!inputMedico || !inputMedico.value) return null;
+    
+    const medicoSeleccionado = allMedicos.find(m => m._id === inputMedico.value);
+    if (medicoSeleccionado && medicoSeleccionado.especialidad && medicoSeleccionado.especialidad !== 'N/A') {
+      return medicoSeleccionado.especialidad;
+    }
+    return null;
+  }
+
+  // Función para cargar citas del paciente filtradas por especialidad del médico
+  async function cargarCitasDelPaciente(email, especialidadMedico = null) {
+    if (!inputCita) return;
+    
+    // Si no se proporciona especialidad, intentar obtenerla del médico seleccionado
+    if (!especialidadMedico) {
+      especialidadMedico = obtenerEspecialidadMedico();
+    }
+    
+    try {
+      const response = await fetch(`/api/citas?email=${encodeURIComponent(email)}`);
+      if (!response.ok) {
+        throw new Error('Error al cargar las citas');
+      }
+      
+      let citas = await response.json();
+      
+      // Filtrar citas por especialidad del médico si está disponible
+      if (especialidadMedico) {
+        citas = citas.filter(cita => cita.especialidad === especialidadMedico);
+      }
+      
+      // Limpiar opciones anteriores excepto la primera
+      inputCita.innerHTML = '<option value="">Seleccione una cita (opcional)</option>';
+      
+      if (citas.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        if (especialidadMedico) {
+          option.textContent = `No hay citas de ${especialidadMedico} disponibles para este paciente`;
+        } else {
+          option.textContent = 'No hay citas disponibles para este paciente';
+        }
+        option.disabled = true;
+        inputCita.appendChild(option);
+        return;
+      }
+      
+      // Agregar citas al selector
+      citas.forEach(cita => {
+        const fechaCita = new Date(cita.fechaCita);
+        const fechaFormateada = fechaCita.toLocaleDateString('es-ES', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        const option = document.createElement('option');
+        option.value = cita._id;
+        option.textContent = `${fechaFormateada} - ${cita.especialidad || 'N/A'} - ${cita.motivoCita || 'N/A'} (${cita.estado || 'N/A'})`;
+        inputCita.appendChild(option);
+      });
+    } catch (error) {
+      console.error('Error al cargar citas:', error);
+      inputCita.innerHTML = '<option value="">Error al cargar las citas</option>';
     }
   }
 
@@ -1151,9 +1222,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === Ver diagnóstico completo ===
   function verDiagnostico(diagnostico) {
+    // Diseño minimalista tipo documento médico
     const medicoNombre = diagnostico.idMedico 
       ? `${diagnostico.idMedico.nombres} ${diagnostico.idMedico.apellidos}`
       : "N/A";
+    
+    const especialidadMedico = diagnostico.idMedico?.especialidad && diagnostico.idMedico.especialidad !== 'N/A'
+      ? diagnostico.idMedico.especialidad
+      : null;
     
     const fecha = new Date(diagnostico.fechaDiagnostico);
     const fechaFormateada = fecha.toLocaleDateString('es-ES', {
@@ -1164,57 +1240,201 @@ document.addEventListener("DOMContentLoaded", () => {
       minute: '2-digit'
     });
     
+    // Información de la cita asociada (estilo minimalista)
+    let citaHTML = "";
+    if (diagnostico.idCita) {
+      const cita = typeof diagnostico.idCita === 'object' ? diagnostico.idCita : null;
+      if (cita) {
+        const fechaCita = new Date(cita.fechaCita);
+        const fechaCitaFormateada = fechaCita.toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        citaHTML = `
+          <div style="border: 1px solid #dbeafe; border-radius: 8px; padding: 1.25rem; margin-bottom: 2rem; background: #eff6ff;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 2px solid #bfdbfe;">
+              <i class="fa-solid fa-calendar-check" style="color: #6b7280; font-size: 1.1rem;"></i>
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Cita Asociada</h4>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; font-size: 0.9rem;">
+              <div>
+                <span style="color: #6b7280; font-weight: 500; display: block; margin-bottom: 0.25rem;">Fecha de Cita</span>
+                <span style="color: #1f2937; font-weight: 600;">${fechaCitaFormateada}</span>
+              </div>
+              ${cita.especialidad ? `
+                <div>
+                  <span style="color: #6b7280; font-weight: 500; display: block; margin-bottom: 0.25rem;">Especialidad</span>
+                  <span style="color: #1f2937; font-weight: 600;">${cita.especialidad}</span>
+                </div>
+              ` : ''}
+              ${cita.motivoCita ? `
+                <div>
+                  <span style="color: #6b7280; font-weight: 500; display: block; margin-bottom: 0.25rem;">Motivo</span>
+                  <span style="color: #1f2937; font-weight: 600;">${cita.motivoCita}</span>
+                </div>
+              ` : ''}
+              <div>
+                <span style="color: #6b7280; font-weight: 500; display: block; margin-bottom: 0.25rem;">Estado</span>
+                <span style="color: #1f2937; font-weight: 600; text-transform: capitalize;">${cita.estado || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+    
+    // Receta médica (estilo minimalista tipo documento)
     let recetaHTML = "";
     if (diagnostico.receta && diagnostico.receta.tieneReceta && diagnostico.receta.medicamentos.length > 0) {
-      recetaHTML = "<h4>Receta Médica:</h4><ul>";
+      recetaHTML = `
+        <div style="border: 1px solid #dbeafe; border-radius: 8px; padding: 1.5rem; margin-top: 2rem; background: #eff6ff;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; padding-bottom: 0.75rem; border-bottom: 2px solid #bfdbfe;">
+            <i class="fa-solid fa-prescription-bottle-medical" style="color: #6b7280; font-size: 1.1rem;"></i>
+            <h4 style="margin: 0; font-size: 0.95rem; font-weight: 600; color: #374151; text-transform: uppercase; letter-spacing: 0.5px;">Receta Médica</h4>
+            <span style="margin-left: auto; font-size: 0.85rem; color: #6b7280;">${diagnostico.receta.medicamentos.length} medicamento${diagnostico.receta.medicamentos.length > 1 ? 's' : ''}</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+      `;
+      
       diagnostico.receta.medicamentos.forEach((med, index) => {
         recetaHTML += `
-          <li>
-            <strong>${index + 1}. ${med.nombre}</strong><br>
-            Dosis: ${med.dosis} | Frecuencia: ${med.frecuencia} | Duración: ${med.duracion}
-            ${med.instrucciones ? `<br>Instrucciones: ${med.instrucciones}` : ''}
-          </li>
+          <div style="border-left: 3px solid #93c5fd; padding-left: 1rem; padding-bottom: 1rem; ${index < diagnostico.receta.medicamentos.length - 1 ? 'border-bottom: 1px solid #dbeafe;' : ''}">
+            <div style="display: flex; align-items: start; gap: 0.75rem; margin-bottom: 0.75rem;">
+              <span style="display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: #3b82f6; color: white; border-radius: 4px; font-size: 0.75rem; font-weight: 700; flex-shrink: 0;">${index + 1}</span>
+              <div style="flex: 1;">
+                <h5 style="margin: 0 0 0.5rem 0; font-size: 1rem; font-weight: 700; color: #2563eb;">${med.nombre}</h5>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.75rem; font-size: 0.875rem;">
+                  <div>
+                    <span style="color: #6b7280; display: block; margin-bottom: 0.25rem;">Dosis</span>
+                    <span style="color: #1f2937; font-weight: 600;">${med.dosis}</span>
+                  </div>
+                  <div>
+                    <span style="color: #6b7280; display: block; margin-bottom: 0.25rem;">Frecuencia</span>
+                    <span style="color: #1f2937; font-weight: 600;">${med.frecuencia}</span>
+                  </div>
+                  <div>
+                    <span style="color: #6b7280; display: block; margin-bottom: 0.25rem;">Duración</span>
+                    <span style="color: #1f2937; font-weight: 600;">${med.duracion}</span>
+                  </div>
+                </div>
+                ${med.instrucciones ? `
+                  <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dbeafe;">
+                    <span style="color: #6b7280; font-size: 0.875rem; font-weight: 500; display: block; margin-bottom: 0.25rem;">Instrucciones</span>
+                    <span style="color: #1f2937; line-height: 1.5;">${med.instrucciones}</span>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          </div>
         `;
       });
-      recetaHTML += "</ul>";
+      
+      recetaHTML += `
+          </div>
+        </div>
+      `;
     } else {
-      recetaHTML = "<p>No se emitió receta médica.</p>";
+      recetaHTML = `
+        <div style="border: 1px dashed #d1d5db; border-radius: 8px; padding: 2rem; margin-top: 2rem; text-align: center; background: #fafafa;">
+          <i class="fa-solid fa-prescription-bottle" style="font-size: 1.5rem; color: #d1d5db; margin-bottom: 0.5rem;"></i>
+          <p style="margin: 0; color: #9ca3af; font-size: 0.9rem;">No se emitió receta médica</p>
+        </div>
+      `;
     }
     
     const contenido = `
-      <h3>Informe de Diagnóstico</h3>
-      <p><strong>Paciente:</strong> ${diagnostico.email}</p>
-      <p><strong>Médico:</strong> ${medicoNombre}</p>
-      <p><strong>Fecha:</strong> ${fechaFormateada}</p>
-      <hr>
-      <p><strong>Síntomas:</strong></p>
-      <p>${diagnostico.sintomas || 'No especificados'}</p>
-      <hr>
-      <p><strong>Diagnóstico:</strong></p>
-      <p>${diagnostico.diagnostico}</p>
-      <hr>
-      <p><strong>Observaciones:</strong></p>
-      <p>${diagnostico.observaciones || 'Ninguna'}</p>
-      <hr>
-      ${recetaHTML}
+      <div style="background: white; padding: 2.5rem; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;">
+        <!-- Encabezado tipo documento -->
+        <div style="text-align: center; margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 3px solid #3b82f6;">
+          <h1 style="margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700; color: #2563eb; letter-spacing: -0.5px;">INFORME DE DIAGNÓSTICO MÉDICO</h1>
+          <p style="margin: 0; font-size: 0.875rem; color: #6b7280; text-transform: uppercase; letter-spacing: 1px;">ACTLAB - Sistema de Gestión Médica</p>
+        </div>
+
+        ${citaHTML}
+
+        <!-- Información básica en tabla -->
+        <div style="margin-bottom: 2.5rem;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <tbody>
+              <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem 0; width: 140px; color: #6b7280; font-weight: 500;">Paciente:</td>
+                <td style="padding: 0.75rem 0; color: #1f2937; font-weight: 600;">${diagnostico.email}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem 0; color: #6b7280; font-weight: 500;">Médico:</td>
+                <td style="padding: 0.75rem 0; color: #1f2937; font-weight: 600;">${medicoNombre}${especialidadMedico ? ` - ${especialidadMedico}` : ''}</td>
+              </tr>
+              <tr style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 0.75rem 0; color: #6b7280; font-weight: 500;">Fecha:</td>
+                <td style="padding: 0.75rem 0; color: #1f2937; font-weight: 600;">${fechaFormateada}</td>
+              </tr>
+              <tr>
+                <td style="padding: 0.75rem 0; color: #6b7280; font-weight: 500;">Estado:</td>
+                <td style="padding: 0.75rem 0;">
+                  <span style="display: inline-block; padding: 0.25rem 0.75rem; background: #1f2937; color: white; border-radius: 4px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                    ${diagnostico.estado || 'completado'}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Síntomas -->
+        <div style="margin-bottom: 2rem;">
+          <h3 style="margin: 0 0 1rem 0; font-size: 0.875rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #3b82f6; padding-bottom: 0.5rem; display: inline-block;">Síntomas</h3>
+          <div style="margin-top: 1rem; padding: 1.25rem; background: #eff6ff; border-left: 4px solid #60a5fa; border-radius: 4px;">
+            <p style="margin: 0; color: #1f2937; line-height: 1.8; white-space: pre-wrap; font-size: 0.95rem;">${diagnostico.sintomas || 'No especificados'}</p>
+          </div>
+        </div>
+
+        <!-- Diagnóstico -->
+        <div style="margin-bottom: 2rem;">
+          <h3 style="margin: 0 0 1rem 0; font-size: 0.875rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #3b82f6; padding-bottom: 0.5rem; display: inline-block;">Diagnóstico</h3>
+          <div style="margin-top: 1rem; padding: 1.25rem; background: #eff6ff; border-left: 4px solid #60a5fa; border-radius: 4px;">
+            <p style="margin: 0; color: #1f2937; line-height: 1.8; white-space: pre-wrap; font-size: 0.95rem; font-weight: 600;">${diagnostico.diagnostico}</p>
+          </div>
+        </div>
+
+        <!-- Observaciones -->
+        ${diagnostico.observaciones ? `
+          <div style="margin-bottom: 2rem;">
+            <h3 style="margin: 0 0 1rem 0; font-size: 0.875rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #3b82f6; padding-bottom: 0.5rem; display: inline-block;">Observaciones</h3>
+            <div style="margin-top: 1rem; padding: 1.25rem; background: #eff6ff; border-left: 4px solid #60a5fa; border-radius: 4px;">
+              <p style="margin: 0; color: #1f2937; line-height: 1.8; white-space: pre-wrap; font-size: 0.95rem;">${diagnostico.observaciones}</p>
+            </div>
+          </div>
+        ` : ''}
+
+        ${recetaHTML}
+      </div>
     `;
     
-    // Crear modal de vista
+    // Crear modal estilo documento médico
     const viewModal = document.createElement("div");
     viewModal.className = "modal";
     viewModal.innerHTML = `
-      <div class="modal-content modal-view">
-        <div class="modal-header">
-          <h3>Ver Diagnóstico</h3>
-          <button type="button" class="modal-close" onclick="this.closest('.modal').remove()">
-            <i class="fa-solid fa-times"></i>
+      <div class="modal-content modal-view" style="max-width: 800px; max-height: 90vh; overflow-y: auto; background: #ffffff; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+        <div class="modal-header" style="background: #3b82f6; color: white; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #2563eb;">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <i class="fa-solid fa-file-medical" style="font-size: 1.25rem;"></i>
+            <h3 style="margin: 0; font-size: 1.1rem; font-weight: 600; letter-spacing: 0.5px;">Ver Diagnóstico</h3>
+          </div>
+          <button type="button" class="modal-close" onclick="this.closest('.modal').remove()" style="background: transparent; border: 1px solid rgba(255,255,255,0.2); color: white; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+            <i class="fa-solid fa-times" style="font-size: 0.9rem;"></i>
           </button>
         </div>
-        <div class="modal-body">
+        <div class="modal-body" style="padding: 0; background: #ffffff;">
           ${contenido}
         </div>
-        <div class="modal-actions">
-          <button type="button" class="btn-secondary" onclick="this.closest('.modal').remove()">Cerrar</button>
+        <div class="modal-actions" style="padding: 1.25rem 1.5rem; background: #f9fafb; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end;">
+          <button type="button" class="btn-secondary" onclick="this.closest('.modal').remove()" style="padding: 0.625rem 1.25rem; background: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 0.875rem; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
+            Cerrar
+          </button>
         </div>
       </div>
     `;
@@ -1279,6 +1499,23 @@ document.addEventListener("DOMContentLoaded", () => {
       // Buscar DNI por email
       const dni = await buscarDNIPorEmail(diagnostico.email || "");
       inputEmail.value = dni || "";
+      
+      // Cargar citas del paciente filtradas por especialidad del médico
+      if (diagnostico.email) {
+        // Obtener la especialidad del médico del diagnóstico
+        const especialidadMedico = diagnostico.idMedico?.especialidad || 
+                                   (userCargo === "medico" && medicoActual?.especialidad) || 
+                                   null;
+        await cargarCitasDelPaciente(diagnostico.email, especialidadMedico);
+        // Seleccionar la cita asociada si existe
+        if (inputCita && diagnostico.idCita) {
+          // Manejar tanto objeto populado como ID directo
+          const citaId = typeof diagnostico.idCita === 'object' && diagnostico.idCita._id 
+            ? diagnostico.idCita._id.toString() 
+            : diagnostico.idCita.toString();
+          inputCita.value = citaId;
+        }
+      }
       
       // Si el usuario es médico, verificar que solo pueda editar sus propios diagnósticos
       if (userCargo === "medico" && medicoActual) {
@@ -1357,6 +1594,11 @@ document.addEventListener("DOMContentLoaded", () => {
       checkboxReceta.checked = false;
       recetaContainer.classList.add("hidden");
       medicamentosList.innerHTML = "";
+      
+      // Limpiar selector de citas
+      if (inputCita) {
+        inputCita.innerHTML = '<option value="">Seleccione una cita (opcional)</option>';
+      }
     }
 
     modal.classList.remove("hidden");
@@ -1426,6 +1668,61 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Cargar citas cuando se ingresa el DNI del paciente
+  if (inputEmail) {
+    let timeoutId;
+    inputEmail.addEventListener("input", async (e) => {
+      const dni = e.target.value.trim();
+      
+      // Limpiar timeout anterior
+      clearTimeout(timeoutId);
+      
+      // Validar formato de DNI
+      if (!/^\d{8}$/.test(dni)) {
+        if (inputCita) {
+          inputCita.innerHTML = '<option value="">Seleccione una cita (opcional)</option>';
+        }
+        return;
+      }
+      
+      // Esperar un poco antes de cargar (debounce)
+      timeoutId = setTimeout(async () => {
+        try {
+          const email = await buscarEmailPorDNI(dni);
+          if (email) {
+            // Obtener la especialidad del médico seleccionado
+            const especialidadMedico = obtenerEspecialidadMedico();
+            await cargarCitasDelPaciente(email, especialidadMedico);
+          }
+        } catch (error) {
+          console.error("Error al cargar citas:", error);
+          if (inputCita) {
+            inputCita.innerHTML = '<option value="">Error al cargar las citas</option>';
+          }
+        }
+      }, 500); // Esperar 500ms después de que el usuario deje de escribir
+    });
+  }
+
+  // Recargar citas cuando cambie el médico seleccionado
+  if (inputMedico) {
+    inputMedico.addEventListener("change", async () => {
+      // Solo recargar si ya hay un DNI ingresado
+      const dni = inputEmail?.value.trim();
+      if (dni && /^\d{8}$/.test(dni)) {
+        try {
+          const email = await buscarEmailPorDNI(dni);
+          if (email) {
+            const especialidadMedico = obtenerEspecialidadMedico();
+            await cargarCitasDelPaciente(email, especialidadMedico);
+          }
+        } catch (error) {
+          console.error("Error al recargar citas al cambiar médico:", error);
+        }
+      }
+    });
+  }
+
   // Filtros
   if (filtroPaciente) {
     filtroPaciente.addEventListener("input", filtrarDiagnosticos);
@@ -1465,6 +1762,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const payload = {
           email: email,
           idMedico: inputMedico.value,
+          idCita: inputCita?.value || "",
           fechaDiagnostico: inputFecha.value,
           diagnostico: inputDiagnostico.value.trim(),
           sintomas: inputSintomas.value.trim(),

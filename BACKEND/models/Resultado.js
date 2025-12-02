@@ -26,6 +26,12 @@ const resultadoSchema = new mongoose.Schema(
       required: true,
     },
 
+    idCita: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Cita",
+      required: false,
+    },
+
     fechaExamen: {
       type: Date,
       required: true,

@@ -1,6 +1,7 @@
 // BACKEND/controllers/resultado.controller.js
 import Resultado from "../models/Resultado.js";
 import Usuario from "../models/Usuario.js";
+import Cita from "../models/Cita.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
@@ -63,7 +64,7 @@ export const getResultadoById = async (req, res) => {
 // Crear un nuevo resultado con PDF
 export const createResultado = async (req, res) => {
   try {
-    const { email, tipoExamen, fechaExamen, observaciones, estado } = req.body;
+    const { email, tipoExamen, fechaExamen, observaciones, estado, idCita } = req.body;
 
     if (!email || !tipoExamen || !fechaExamen) {
       return res.status(400).json({ 
@@ -85,11 +86,27 @@ export const createResultado = async (req, res) => {
       return res.status(404).json({ error: "El usuario no existe" });
     }
 
+    // Verificar que la cita existe si se proporciona
+    let citaAsociada = null;
+    if (idCita) {
+      citaAsociada = await Cita.findById(idCita);
+      if (!citaAsociada) {
+        fs.unlinkSync(req.file.path);
+        return res.status(404).json({ error: "La cita especificada no existe" });
+      }
+      // Verificar que la cita pertenece al paciente
+      if (citaAsociada.email.toLowerCase() !== email.toLowerCase()) {
+        fs.unlinkSync(req.file.path);
+        return res.status(400).json({ error: "La cita no pertenece al paciente especificado" });
+      }
+    }
+
     const fechaExamenFinal = fechaExamen ? new Date(fechaExamen) : new Date();
 
     const nuevoResultado = new Resultado({
       email,
       tipoExamen,
+      idCita: idCita || undefined,
       fechaExamen: fechaExamenFinal,
       fechaResultado: new Date(),
       archivoPDF: `/uploads/pdfs/${req.file.filename}`,

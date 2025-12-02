@@ -269,7 +269,7 @@
             </td>
             <td style="padding: 1rem;">${estadoBadge}</td>
             <td style="padding: 1rem;">
-              <button class="btn-icon" title="Ver detalles" style="background: #eff6ff; color: #3b82f6; border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" onclick="alert('📋 Detalles del Pago\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\n💰 Monto: S/ ${parseFloat(p.monto).toFixed(2)}\\n💳 Método: ${metodoFormateado} (${p.metodo})\\n✅ Estado: ${p.estado === 'pagado' ? 'Pagado' : 'Pendiente'}\\n\\n👤 Paciente: ${p.usuario && p.usuario.nombres && p.usuario.apellidos ? p.usuario.nombres + ' ' + p.usuario.apellidos : 'N/A'}\\n📧 Email: ${p.email}\\n🏥 Especialidad: ${especialidad}\\n📅 Fecha de Cita: ${fechaCita !== '-' ? fechaCita : 'N/A'}\\n🕐 Fecha de Pago: ${fecha} a las ${hora}\\n\\n━━━━━━━━━━━━━━━━━━━━\\n\\nID: ${p._id}')">
+              <button class="btn-icon" title="Ver detalles" style="background: #eff6ff; color: #3b82f6; border: none; padding: 0.5rem; border-radius: 8px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" onclick="mostrarDetallePagoAdmin('${p._id}', '${p.email}', '${(p.usuario && p.usuario.nombres && p.usuario.apellidos ? p.usuario.nombres + ' ' + p.usuario.apellidos : 'N/A').replace(/'/g, "\\'")}', '${especialidad.replace(/'/g, "\\'")}', '${fechaCita !== '-' ? fechaCita : 'N/A'}', '${fecha}', '${hora}', '${parseFloat(p.monto).toFixed(2)}', '${metodoFormateado.replace(/'/g, "\\'")}', '${p.metodo}', '${p.estado}')">
                 <i class="fa-solid fa-eye"></i>
               </button>
             </td>
@@ -309,7 +309,399 @@
         });
       }
     });
+
+    // Función para mostrar el modal de detalles de pago
+    window.mostrarDetallePagoAdmin = function(pagoId, email, nombrePaciente, especialidad, fechaCita, fechaPago, horaPago, monto, metodoFormateado, metodo, estado) {
+      const modal = document.getElementById('modalDetallePagoAdmin');
+      if (!modal) return;
+
+      // Llenar los datos del modal
+      document.getElementById('adminDetalleMonto').textContent = `S/ ${monto}`;
+      document.getElementById('adminDetalleMetodo').textContent = `${metodoFormateado} (${metodo})`;
+      document.getElementById('adminDetalleEstado').innerHTML = estado === 'pagado' 
+        ? '<span style="background: #d1fae5; color: #059669; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-check-circle"></i> Pagado</span>'
+        : '<span style="background: #fef3c7; color: #d97706; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.875rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem;"><i class="fa-solid fa-clock"></i> Pendiente</span>';
+      document.getElementById('adminDetallePaciente').textContent = nombrePaciente || 'N/A';
+      document.getElementById('adminDetalleEmail').textContent = email || 'N/A';
+      document.getElementById('adminDetalleEspecialidad').textContent = especialidad || 'N/A';
+      document.getElementById('adminDetalleFechaCita').textContent = fechaCita !== 'N/A' ? fechaCita : 'N/A';
+      document.getElementById('adminDetalleFechaPago').textContent = `${fechaPago} a las ${horaPago}`;
+
+      // Mostrar el modal
+      modal.classList.add('active');
+    };
+
+    // Función para cerrar el modal
+    window.cerrarModalDetallePagoAdmin = function() {
+      const modal = document.getElementById('modalDetallePagoAdmin');
+      if (modal) {
+        modal.classList.remove('active');
+      }
+    };
   </script>
+
+  <!-- Modal de Detalles de Pago para Admin -->
+  <div id="modalDetallePagoAdmin" class="modal-overlay-admin">
+    <div class="modal-content-admin">
+      <div class="modal-header-admin">
+        <div class="header-content-admin">
+          <div class="header-icon-wrapper-admin">
+            <i class="fa-solid fa-receipt"></i>
+          </div>
+          <h2>Detalles del Pago</h2>
+        </div>
+        <button type="button" class="btn-close-modal-admin" onclick="cerrarModalDetallePagoAdmin()">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+
+      <div class="modal-body-admin">
+        <!-- Sección de Información de Pago -->
+        <div class="info-section-admin payment-info-admin">
+          <h3 class="section-title-admin">
+            <i class="fa-solid fa-credit-card"></i>
+            Información de Pago
+          </h3>
+          <div class="info-grid-admin">
+            <div class="info-item-admin highlight-admin">
+              <div class="info-label-admin">
+                <i class="fa-solid fa-coins"></i>
+                Monto
+              </div>
+              <div class="info-value-admin" id="adminDetalleMonto">-</div>
+            </div>
+            <div class="info-item-admin">
+              <div class="info-label-admin">
+                <i class="fa-solid fa-wallet"></i>
+                Método
+              </div>
+              <div class="info-value-admin" id="adminDetalleMetodo">-</div>
+            </div>
+            <div class="info-item-admin">
+              <div class="info-label-admin">
+                <i class="fa-solid fa-circle-check"></i>
+                Estado
+              </div>
+              <div class="info-value-admin" id="adminDetalleEstado">-</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección de Información del Paciente -->
+        <div class="info-section-admin patient-info-admin">
+          <h3 class="section-title-admin">
+            <i class="fa-solid fa-user"></i>
+            Información del Paciente
+          </h3>
+          <div class="info-grid-admin">
+            <div class="info-item-admin">
+              <div class="info-label-admin">
+                <i class="fa-solid fa-user-circle"></i>
+                Paciente
+              </div>
+              <div class="info-value-admin" id="adminDetallePaciente">-</div>
+            </div>
+            <div class="info-item-admin">
+              <div class="info-label-admin">
+                <i class="fa-solid fa-envelope"></i>
+                Email
+              </div>
+              <div class="info-value-admin email-value-admin" id="adminDetalleEmail">-</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección de Información Adicional -->
+        <div class="info-section-admin additional-info-admin">
+          <h3 class="section-title-admin">
+            <i class="fa-solid fa-info-circle"></i>
+            Información Adicional
+          </h3>
+          <div class="info-grid-admin">
+            <div class="info-item-admin">
+              <div class="info-label-admin">
+                <i class="fa-solid fa-stethoscope"></i>
+                Especialidad
+              </div>
+              <div class="info-value-admin" id="adminDetalleEspecialidad">-</div>
+            </div>
+            <div class="info-item-admin">
+              <div class="info-label-admin">
+                <i class="fa-solid fa-calendar-alt"></i>
+                Fecha de Cita
+              </div>
+              <div class="info-value-admin" id="adminDetalleFechaCita">-</div>
+            </div>
+            <div class="info-item-admin">
+              <div class="info-label-admin">
+                <i class="fa-solid fa-clock"></i>
+                Fecha de Pago
+              </div>
+              <div class="info-value-admin" id="adminDetalleFechaPago">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions-admin">
+        <button type="button" class="btn-aceptar-admin" onclick="cerrarModalDetallePagoAdmin()">
+          <i class="fa-solid fa-check"></i>
+          Aceptar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    /* Estilos del Modal de Detalles de Pago para Admin */
+    .modal-overlay-admin {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal-overlay-admin.active {
+      display: flex;
+    }
+
+    .modal-content-admin {
+      background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+      border-radius: 20px;
+      padding: 0;
+      max-width: 650px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+      animation: modalSlideIn 0.3s ease-out;
+    }
+
+    @keyframes modalSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .modal-header-admin {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      padding: 1.75rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+
+    .header-content-admin {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .header-icon-wrapper-admin {
+      width: 48px;
+      height: 48px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(10px);
+    }
+
+    .header-icon-wrapper-admin i {
+      font-size: 1.5rem;
+      color: white;
+    }
+
+    .modal-header-admin h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .btn-close-modal-admin {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      font-size: 1.25rem;
+      color: white;
+      cursor: pointer;
+      padding: 0.5rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .btn-close-modal-admin:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: rotate(90deg);
+    }
+
+    .modal-body-admin {
+      padding: 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .info-section-admin {
+      background: white;
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e5e7eb;
+    }
+
+    .info-section-admin:last-child {
+      margin-bottom: 0;
+    }
+
+    .section-title-admin {
+      margin: 0 0 1.25rem 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #374151;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid #f3f4f6;
+    }
+
+    .section-title-admin i {
+      color: #3b82f6;
+      font-size: 1.1rem;
+    }
+
+    .info-grid-admin {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .info-item-admin {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .info-item-admin.highlight-admin {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      padding: 1.25rem;
+      border-radius: 12px;
+      border: 2px solid #22c55e;
+    }
+
+    .info-label-admin {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .info-label-admin i {
+      color: #3b82f6;
+      font-size: 0.9rem;
+      width: 16px;
+    }
+
+    .info-item-admin.highlight-admin .info-label-admin {
+      color: #059669;
+    }
+
+    .info-item-admin.highlight-admin .info-label-admin i {
+      color: #059669;
+    }
+
+    .info-value-admin {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #111827;
+      word-break: break-word;
+    }
+
+    .info-item-admin.highlight-admin .info-value-admin {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #059669;
+    }
+
+    .email-value-admin {
+      font-size: 0.95rem;
+      color: #4b5563;
+      word-break: break-all;
+    }
+
+    .modal-actions-admin {
+      padding: 1.5rem 2rem;
+      background: #f9fafb;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-aceptar-admin {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      color: white;
+      border: none;
+      padding: 0.875rem 2rem;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+    }
+
+    .btn-aceptar-admin:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px -2px rgba(59, 130, 246, 0.4);
+    }
+
+    .btn-aceptar-admin:active {
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      .modal-content-admin {
+        max-width: 95%;
+        margin: 1rem;
+      }
+
+      .info-grid-admin {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </body>
 </html>
 
